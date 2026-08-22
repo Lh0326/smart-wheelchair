@@ -533,6 +533,8 @@ huggingface-cli download lh527/smart-wheelchair --local-dir models/ --include "m
 
 权重就位前，启动脚本会给出明确的缺失提示。
 
+EEG 专注度模型的训练评估产物（5 折交叉验证报告：准确率 95.97%、AUC 0.990、混淆矩阵、每折指标）随权重一同托管于 `models/eeg/training_report_624train.json`，§2 引用的全部指标均出自该文件。
+
 ---
 
 ## 集成测试
