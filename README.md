@@ -520,11 +520,18 @@ source source_env.sh          # WS_ROOT/MODELS_ROOT/ROS 环境一键加载
 
 ```bash
 pip install -U huggingface_hub
-huggingface-cli download <hf-repo> --local-dir models/
+huggingface-cli download lh527/smart-wheelchair --local-dir models/
 # 国内镜像：将 huggingface.co 替换为 hf-mirror.com
 ```
 
-（HF 仓库链接见仓库首页公告；权重就位前，启动脚本会给出明确的缺失提示。）
+托管仓库：https://huggingface.co/lh527/smart-wheelchair （国内镜像：huggingface.co 替换为 hf-mirror.com）
+
+```bash
+huggingface-cli download lh527/smart-wheelchair --local-dir models/ --include "models/*"
+# 下载完成后将 models/ 内容放置到仓库根的 models/ 目录
+```
+
+权重就位前，启动脚本会给出明确的缺失提示。
 
 ---
 
