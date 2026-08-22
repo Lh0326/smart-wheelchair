@@ -1,0 +1,24 @@
+jy901_driver:
+  ros__parameters:
+    # 串口
+    port: /dev/ttyIMU
+    # HWT906P 默认 921600（不是 JY901 的 9600/115200）
+    baud: 921600
+
+    # TF
+    frame_id: imu_link
+    parent_frame: base_link
+
+    # 校准
+    calibration_duration: 3.0
+
+    # 安装位置（座椅下方）
+    imu_position_x: 0.0
+    imu_position_y: 0.0
+    imu_position_z: 0.4
+
+    # 安装朝向（关键：装错调 imu_rotation_y）
+    # 默认 0.0 = IMU X+ 朝轮椅前方
+    imu_rotation_r: 0.0
+    imu_rotation_p: 0.0
+    imu_rotation_y: 0.0

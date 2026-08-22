@@ -1,0 +1,73 @@
+/**:
+  ros__parameters:
+    # EKF 配置：融合 GPS（map frame）+ IMU yaw/角速度/加速度
+    # 2D 模式（轮椅场景，忽略 Z 轴）
+
+    frequency: 30.0
+    two_d_mode: true
+    print_diagnostics: true
+    debug: false
+
+    # 帧
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_link
+    world_frame: odom
+
+    # 不发布 TF（避免和 navsat_transform 冲突）
+    publish_tf: true
+
+    # === Sensor 1: GPS（来自 navsat_transform 的 /odometry/gps）===
+    # 只用 x, y（水平位置），其他不用
+    odom0: odometry/gps
+    odom0_config: [true,  true,  false,
+                   false, false, false,
+                   false, false, false,
+                   false, false, false,
+                   false, false, false]
+    odom0_differential: false
+    odom0_queue_size: 10
+    odom0_nodelay: false
+    # GPS 测量噪声（米²）→ ~1.7m σ，方差 ≈ 2.89
+    odom0_covariance: [
+      2.89, 0.0, 0.0,  0.0, 0.0, 0.0,
+      0.0, 2.89, 0.0,  0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0,   0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0,   0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0,   0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0,   0.0, 0.0, 0.0
+    ]
+
+    # === Sensor 2: IMU（来自 imu_heading_node 的 /imu/data）===
+    # 用 yaw（orientation.z）+ yaw_rate（angular_velocity.z）+ xy 加速度
+    imu0: imu/data
+    imu0_config: [false, false, false,
+                  false, false, true,
+                  false, false, false,
+                  false, false, true,
+                  true,  true,  false]
+    imu0_differential: false
+    imu0_queue_size: 10
+    imu0_nodelay: false
+    # IMU orientation_covariance 在消息里已设（imu_heading_node 透传）
+    imu0_remove_gravitational_acceleration: true
+
+    # === 过程噪声 ===
+    # 描述系统动态噪声（轮椅 0.3-1.5 m/s，加速度小）
+    process_noise_covariance: [
+      0.05,  0.0,   0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+      0.0,   0.05,  0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+      0.0,   0.0,   0.06,   0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+      0.0,   0.0,   0.0,    0.03,   0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+      0.0,   0.0,   0.0,    0.0,    0.03,   0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+      0.0,   0.0,   0.0,    0.0,    0.0,    0.06,   0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+      0.0,   0.0,   0.0,    0.0,    0.0,    0.0,    0.025,  0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+      0.0,   0.0,   0.0,    0.0,    0.0,    0.0,    0.0,    0.025,  0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+      0.0,   0.0,   0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.04,   0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+      0.0,   0.0,   0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.01,   0.0,    0.0,    0.0,    0.0,    0.0,
+      0.0,   0.0,   0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.01,   0.0,    0.0,    0.0,    0.0,
+      0.0,   0.0,   0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.02,   0.0,    0.0,    0.0,
+      0.0,   0.0,   0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.01,   0.0,    0.0,
+      0.0,   0.0,   0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.01,   0.0,
+      0.0,   0.0,   0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.015
+    ]

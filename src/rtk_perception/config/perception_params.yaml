@@ -1,0 +1,50 @@
+# M4 感知与避障：集中参数文件
+# 被 m4_perception.launch.py 加载，覆盖 fusion_scan / curb_detector / vfh_avoidance / safety_chain 四个节点。
+# target_heading_node 无可调参数，故不在此列出。
+
+fusion_scan_node:
+  ros__parameters:
+    input_scan_a: "/scan"
+    input_scan_b: "/scan_ld14p"
+    output_scan: "/scan_fused"
+
+curb_detector_node:
+  ros__parameters:
+    delta_r_threshold: 0.15
+    max_curb_range: 5.0
+    min_line_length: 1.0
+    bin_size_deg: 1.0
+    dbscan_eps: 0.3
+    dbscan_min_samples: 3
+
+vfh_avoidance_node:
+  ros__parameters:
+    safety_distance_m: 0.5
+    danger_distance_m: 1.5
+    sector_deg: 5.0
+    threshold_low: 0.2
+    threshold_high: 0.9
+    max_turn_rate_rad_s: 0.8
+    max_speed_m_s: 0.6
+    cost_weight_target: 1.0
+    cost_weight_heading: 0.3
+    cost_weight_prev_dir: 0.6
+    cost_weight_curbs: 2.0
+    front_fov_half_deg: 60.0
+    hysteresis_dead_band_rad: 0.3
+    angular_smoothing_alpha: 0.4
+    cruise_speed_m_s: 0.3
+    control_loop_hz: 20.0
+    # LD14P 机身遮挡屏蔽矩形（轮椅自身遮挡不纳入 VFH+ histogram）
+    ld14p_shield_front_m: 0.0    # 正前方不屏蔽
+    ld14p_shield_back_m: 0.45    # 正后方 45cm
+    ld14p_shield_side_m: 0.26    # 左右各 26cm
+
+safety_chain_node:
+  ros__parameters:
+    input_scan_topic: "/scan_fused"
+    emergency_stop_distance: 0.55
+    slowdown_distance: 1.5
+    slowdown_factor: 0.35
+    front_fov_half_deg: 40.0
+    scan_timeout_sec: 0.5

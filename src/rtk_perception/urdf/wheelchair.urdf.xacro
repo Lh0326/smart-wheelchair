@@ -1,0 +1,118 @@
+<?xml version="1.0"?>
+<robot name="wheelchair" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- base_link：轮椅座椅（方块表示） -->
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0.1" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.6 0.7 0.2"/>
+      </geometry>
+      <material name="gray">
+        <color rgba="0.5 0.5 0.5 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- 4 个轮子（小圆柱，仅视觉） -->
+  <link name="wheel_fl_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry><cylinder radius="0.15" length="0.05"/></geometry>
+      <material name="black"><color rgba="0.1 0.1 0.1 1.0"/></material>
+    </visual>
+  </link>
+  <joint name="wheel_fl_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="wheel_fl_link"/>
+    <origin xyz="0.25 -0.30 0.0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="wheel_fr_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry><cylinder radius="0.15" length="0.05"/></geometry>
+      <material name="black"><color rgba="0.1 0.1 0.1 1.0"/></material>
+    </visual>
+  </link>
+  <joint name="wheel_fr_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="wheel_fr_link"/>
+    <origin xyz="0.25 0.30 0.0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="wheel_bl_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry><cylinder radius="0.15" length="0.05"/></geometry>
+      <material name="black"><color rgba="0.1 0.1 0.1 1.0"/></material>
+    </visual>
+  </link>
+  <joint name="wheel_bl_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="wheel_bl_link"/>
+    <origin xyz="-0.25 -0.30 0.0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="wheel_br_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry><cylinder radius="0.15" length="0.05"/></geometry>
+      <material name="black"><color rgba="0.1 0.1 0.1 1.0"/></material>
+    </visual>
+  </link>
+  <joint name="wheel_br_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="wheel_br_link"/>
+    <origin xyz="-0.25 0.30 0.0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- N10P link：后方高位水平扫描雷达 -->
+  <link name="n10p_link">
+    <visual>
+      <geometry><box size="0.05 0.05 0.05"/></geometry>
+      <material name="red"><color rgba="0.8 0.1 0.1 1.0"/></material>
+    </visual>
+  </link>
+  <joint name="n10p_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="n10p_link"/>
+    <origin xyz="-0.255 0 1.47" rpy="0 0 0"/>
+  </joint>
+
+  <!-- LD14P link：前方低位水平扫描雷达（扫描路沿） -->
+  <link name="ld14p_link">
+    <visual>
+      <geometry><box size="0.05 0.05 0.05"/></geometry>
+      <material name="cyan"><color rgba="0.0 0.8 0.8 1.0"/></material>
+    </visual>
+  </link>
+  <joint name="ld14p_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="ld14p_link"/>
+    <origin xyz="0.32 0 0.13" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Gemini 335L link：右后方高位深度相机 -->
+  <link name="gemini_link">
+    <visual>
+      <geometry><box size="0.08 0.20 0.04"/></geometry>
+      <material name="blue"><color rgba="0.1 0.3 0.8 1.0"/></material>
+    </visual>
+  </link>
+  <joint name="gemini_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="gemini_link"/>
+    <origin xyz="-0.255 -0.255 1.25" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Gemini 光学坐标系:z 朝前(深度图标准 REP 103) -->
+  <joint name="gemini_optical_joint" type="fixed">
+    <parent link="gemini_link"/>
+    <child link="gemini_link_optical"/>
+    <origin xyz="0 0 0" rpy="-1.5708 0 0"/>
+    <!-- rpy=-π/2 around x:base_link 的 z(上)→光学系 y(下),x(前)→光学系 z(前) -->
+  </joint>
+  <link name="gemini_link_optical"/>
+
+</robot>

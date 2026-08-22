@@ -1,0 +1,14 @@
+{
+  "version": "2.0",
+  "sign_flip": {
+    "pitch": 1,
+    "roll": -1
+  },
+  "swap_axes": false,
+  "pitch_offset_deg": 0.0,
+  "roll_offset_deg": 0.0,
+  "alpha": 0.3,
+  "beta": 0.5,
+  "pitch_baseline_deg": 0.10786540260191914,
+  "roll_baseline_deg": -0.023117022218633022
+}

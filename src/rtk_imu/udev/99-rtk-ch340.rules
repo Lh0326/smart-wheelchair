@@ -1,0 +1,13 @@
+# RTK CH340 stable serial mappings after current COM port reassignment.
+# Install with:
+#   sudo install -m 0644 src/rtk_imu/udev/99-rtk-ch340.rules /etc/udev/rules.d/99-rtk-ch340.rules
+#   sudo udevadm control --reload-rules && sudo udevadm trigger
+#
+# CH340 adapters do not expose unique serial numbers, so use USB topology.
+#
+# 注意：脑控 ESP32 设备（EEG WIFI + IMU）已迁移到 99-braincontrol-esp32.rules，
+# 因为它们是 ESP32 native USB（VID=303a），不是 CH340（VID=1a86）。
+
+# Electric wheelchair lower controller: silent unless commanded, 115200 bps.
+SUBSYSTEM=="tty", KERNELS=="3-6.3", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", \
+  SYMLINK+="wheelchair_chassis", MODE="0666"

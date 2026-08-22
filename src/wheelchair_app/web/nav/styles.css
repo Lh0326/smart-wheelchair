@@ -1,0 +1,194 @@
+/* 沉墨变量已在 sinki.css 定义,这里覆盖地图专属 */
+
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+#map {
+  width: 100%;
+  height: calc(100vh - 60px);  /* 60px 顶栏（hw-strip 已删除，硬件监控由 PyQt5 QStatusBar 显示） */
+  background: var(--card-bg-darker);
+}
+
+.status-row {
+  background: #f8f9fa;
+  color: #222;
+  padding: 4px 10px;
+  border-bottom: 1px solid #e8e8e8;
+  font-family: 'Geist Mono', monospace;
+}
+
+/* Leaflet 控件沉墨化 */
+.leaflet-control-zoom a {
+  background: var(--card-bg) !important;
+  color: var(--accent) !important;
+  border-color: var(--border) !important;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+#app { display: flex; width: 100vw; height: 100vh; }
+#sidebar {
+  width: 320px; height: 100%; padding: 16px;
+  background: #f5f5f5; border-left: 1px solid #ddd;
+  overflow-y: auto;
+}
+h2 { font-size: 18px; margin-bottom: 16px; color: #333; }
+h3 { font-size: 14px; margin: 16px 0 8px 0; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.status-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #e0e0e0; }
+.label { color: #666; font-size: 13px; }
+.value { color: #222; font-size: 13px; font-weight: 500; }
+.value.mono { font-family: "SF Mono", Consolas, monospace; }
+.value.disconnected { color: #c0392b; }
+.value.connected { color: #2d8f4e; }
+
+button {
+  width: 100%; padding: 8px; margin-top: 8px;
+  background: #2980b9; color: white; border: none; border-radius: 4px;
+  cursor: pointer; font-size: 13px;
+}
+button:hover:not(:disabled) { background: #1f6d9c; }
+button:disabled { background: #aaa; cursor: not-allowed; }
+
+#poi-list, #log-list { list-style: none; }
+#poi-list li, #log-list li {
+  padding: 8px 12px; margin: 4px 0;
+  background: white; border: 1px solid #e0e0e0; border-radius: 4px;
+  cursor: pointer; font-size: 13px;
+}
+#poi-list li:hover { background: #e8f4fc; border-color: #2980b9; }
+#poi-list li.loading { color: #999; cursor: default; }
+#log-list li { cursor: default; font-size: 12px; color: #555; padding: 4px 8px; background: #fafafa; }
+
+#log-panel { margin-top: 24px; }
+
+/* === IMU 实时数据面板 === */
+#imu-panel {
+  margin-top: 16px;
+  padding: 12px;
+  background: #1f2937;
+  color: #e5e7eb;
+  border-radius: 6px;
+  font-family: 'Geist Mono', 'SF Mono', Consolas, monospace;
+  font-size: 12px;
+}
+.imu-section {
+  color: #fbbf24;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 10px;
+  margin-bottom: 4px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid #374151;
+}
+.imu-section:first-of-type { margin-top: 4px; }
+.imu-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 4px;
+}
+.imu-val { color: #f3f4f6; }
+.imu-val-warn { color: #fbbf24; }
+.imu-val-info { color: #60a5fa; }
+
+/* 人工地平仪（姿态指示器） */
+.attitude-indicator {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  position: relative;
+  margin: 6px auto 10px;
+  overflow: hidden;
+  border: 2px solid #4b5563;
+  background: #1f2937;
+  box-shadow: 0 0 0 2px #1f2937 inset, 0 2px 6px rgba(0,0,0,0.5);
+}
+.attitude-horizon {
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  left: -50%;
+  top: -50%;
+  transform-origin: center center;
+  transition: transform 0.08s linear;
+}
+.attitude-sky {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 50%;
+  background: linear-gradient(#7dd3fc, #3b82f6);
+}
+.attitude-ground {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 50%;
+  background: linear-gradient(#92400e, #451a03);
+}
+.attitude-pitch-marks {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 60%;
+  height: 1px;
+  background: #fff;
+  transform: translate(-50%, -50%);
+  box-shadow:
+    0 -20px 0 -24px #fff,
+    0 -40px 0 -24px #fff,
+    0 -60px 0 -24px #fff,
+    0 20px 0 -24px #fff,
+    0 40px 0 -24px #fff,
+    0 60px 0 -24px #fff;
+}
+.attitude-aircraft {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fde047;
+  font-size: 22px;
+  font-weight: bold;
+  text-shadow: 0 0 4px #000;
+  pointer-events: none;
+}
+.attitude-roll-arrow {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform-origin: 50% 66px;
+  transform: translateX(-50%);
+  color: #fde047;
+  font-size: 14px;
+  text-shadow: 0 0 3px #000;
+  pointer-events: none;
+}
+
+/* 硬件监控样式已删除——由 PyQt5 MainWindow HwStrip 统一显示（不依赖 web 渲染）。 */
+
+/* === GPS 状态卡片（EC20 三层状态：冷启动 / 搜索中 / 定位成功） === */
+.gps-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin: 0 0 12px 0;
+  border-radius: 8px;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  transition: background 0.3s ease;
+}
+.gps-card .gps-icon { font-size: 22px; line-height: 1; }
+.gps-card .gps-info { flex: 1; min-width: 0; }
+.gps-card .gps-state-label { font-size: 14px; font-weight: 600; }
+.gps-card .gps-detail { font-size: 11px; opacity: 0.9; margin-top: 2px; }
+
+.gps-state-cold      { background: #6c757d; }
+.gps-state-searching { background: #ffc107; color: #333; animation: gps-pulse 1.5s ease-in-out infinite; }
+.gps-state-fix       { background: #28a745; }
+
+@keyframes gps-pulse {
+  0%   { transform: scale(1); opacity: 1; }
+  50%  { transform: scale(1.02); opacity: 0.85; }
+  100% { transform: scale(1); opacity: 1; }
+}

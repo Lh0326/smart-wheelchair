@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>小智陪伴</title>
+  <link rel="stylesheet" href="../shared/sinki.css">
+  <link rel="stylesheet" href="styles.css">
+  <script src="../nav/vendor/roslibjs.js"></script>
+</head>
+<body>
+
+<div class="layout">
+  <!-- 左列:相机视频流 -->
+  <div class="card camera-card">
+    <div class="card-header">
+      <span class="dot live"></span>
+      <span>前置相机 · Gemini 335L</span>
+      <span class="badge mono" id="camera-fps">-- FPS</span>
+    </div>
+    <div class="card-body camera-body">
+      <div class="camera-placeholder" id="camera-placeholder">
+        <div class="placeholder-icon">📷</div>
+        <div class="placeholder-text">等待相机接入</div>
+        <div class="placeholder-hint">web_video_server MJPEG 流</div>
+      </div>
+      <img id="camera-img" src="" style="display:none;">
+      <canvas id="detection-canvas" width="640" height="480"></canvas>
+    </div>
+  </div>
+
+  <!-- 右列上:雷达图(三路融合) -->
+  <div class="card radar-card">
+    <div class="card-header">
+      <span class="dot live"></span>
+      <span>雷达图</span>
+      <div class="legend">
+        <span><span class="legend-dot n10p"></span>N10P</span>
+        <span><span class="legend-dot ld14p"></span>LD14P</span>
+        <span><span class="legend-dot gemini"></span>Gemini 335L</span>
+      </div>
+    </div>
+    <div class="card-body radar-body">
+      <canvas id="radar-canvas" width="400" height="400"></canvas>
+      <div class="dir-overlay">
+        <div class="dir-item dir-front">前: <span id="dir-front">--</span></div>
+        <div class="dir-item dir-back">后: <span id="dir-back">--</span></div>
+        <div class="dir-item dir-left">左: <span id="dir-left">--</span></div>
+        <div class="dir-item dir-right">右: <span id="dir-right">--</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右列下:ASR 文本流 -->
+  <div class="card asr-card">
+    <div class="card-header">
+      <span class="dot live"></span>
+      <span>ASR 语音识别</span>
+      <span class="badge mono" id="asr-count">0 条</span>
+    </div>
+    <div class="card-body asr-body">
+      <!-- 语音状态卡片(大图标 + 倒计时) -->
+      <div class="voice-status" id="voice-status" data-state="idle">
+        <div class="voice-icon" id="voice-icon">
+          <svg viewBox="0 0 100 100" width="80" height="80">
+            <!-- 麦克风图标(idle 灰色) -->
+            <path class="mic-body" d="M 35 25 Q 35 15 50 15 Q 65 15 65 25 L 65 50 Q 65 60 50 60 Q 35 60 35 50 Z"
+                  fill="currentColor" opacity="0.8"/>
+            <rect class="mic-stand" x="35" y="65" width="30" height="4" fill="currentColor"/>
+            <line class="mic-pole" x1="50" y1="69" x2="50" y2="80" stroke="currentColor" stroke-width="3"/>
+            <line class="mic-base" x1="38" y1="80" x2="62" y2="80" stroke="currentColor" stroke-width="3"/>
+          </svg>
+          <!-- 音波(聆听时显示)-->
+          <div class="sound-wave" id="sound-wave">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+        </div>
+        <div class="voice-info">
+          <div class="voice-state-text" id="voice-state-text">等待唤醒</div>
+          <div class="voice-hint" id="voice-hint">说"小智你好"唤醒我</div>
+          <div class="voice-countdown" id="voice-countdown"></div>
+        </div>
+      </div>
+      <!-- 历史日志 -->
+      <div id="asr-log">
+        <div class="asr-line placeholder">等待唤醒...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

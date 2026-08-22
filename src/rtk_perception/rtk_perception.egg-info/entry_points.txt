@@ -1,0 +1,14 @@
+[console_scripts]
+camera_detect_node = rtk_perception.camera_detect_node:main
+camera_http_streamer = rtk_perception.camera_http_streamer:main
+curb_detector_node = rtk_perception.curb_detector_node:main
+detection_to_cloud = rtk_perception.detection_to_cloud:main
+fusion_scan_node = rtk_perception.fusion_scan_node:main
+path_feeder_node = rtk_perception.path_feeder_node:main
+path_to_baselink_node = rtk_perception.path_to_baselink_node:main
+safety_chain_node = rtk_perception.safety_chain_node:main
+scan_min_range_filter = rtk_perception.scan_min_range_filter:main
+sim_chassis_node = rtk_perception.sim_chassis_node:main
+target_heading_node = rtk_perception.target_heading_node:main
+teb_debug_node = rtk_perception.teb_debug_node:main
+vfh_avoidance_node = rtk_perception.vfh_avoidance_node:main

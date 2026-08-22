@@ -1,0 +1,92 @@
+# TEB Local Planner 配置（差速驱动轮椅）
+# 参考：https://github.com/rst-tu-dortmund/teb_local_planner
+controller_server:
+  ros__parameters:
+    use_sim_time: false
+    controller_frequency: 20.0
+    min_x_velocity_threshold: 0.001
+    min_y_velocity_threshold: 0.5
+    min_theta_velocity_threshold: 0.001
+    failure_tolerance: 0.3
+    progress_checker_plugin: "progress_checker"
+    goal_checker_plugins: ["general_goal_checker"]
+    controller_plugins: ["FollowPath"]
+
+    progress_checker:
+      plugin: "nav2_controller::SimpleProgressChecker"
+      required_movement_radius: 0.3       # 0.5→0.3 放宽:TEB 启动慢时不轻易 abort
+      movement_time_allowance: 30.0       # 10→30 秒:给 TEB 充分启动时间(仿真 CPU 紧张)
+
+    general_goal_checker:
+      stateful: True
+      plugin: "nav2_controller::SimpleGoalChecker"
+      xy_goal_tolerance: 0.25
+      yaw_goal_tolerance: 0.25
+
+    FollowPath:
+      plugin: "teb_local_planner::TebLocalPlannerROS"
+
+      # 差速驱动
+      cmd_angle_instead_rotvel: false
+      max_vel_x: 0.5                # 载人避障优先，保留更充分反应时间
+      # max_vel_x_backwards: 0.0 → 0.1（2026-07-06，TEB 默认值）
+      # TEB 内部 penalty_epsilon=0.1（默认），max_vel_x_backwards < penalty_epsilon
+      # 会让数值优化 bound 为负，触发 "Undefined behavior"（启动时 TEB 自己警告），
+      # 导致反复 "trajectory is not feasible" + progress abort → 底盘断续动。
+      # 实际禁后退由 chassis_serial_node 的 nav_allow_reverse=False 兜底拦截（launch 已配）。
+      max_vel_x_backwards: 0.1
+      max_vel_theta: 0.60           # 保留原地对向和绕障所需转向能力
+      acc_lim_x: 0.4                # 载人轮椅起停更柔和
+      acc_lim_theta: 0.80           # 平顺起转，同时避免转向响应过慢
+      min_turning_radius: 0.0
+      wheelbase: 0.5
+      max_vel_y: 0.0
+
+      # 轨迹优化
+      dt_ref: 0.30
+      dt_hysteresis: 0.10
+      max_global_plan_lookahead_dist: 4.0
+      global_plan_overwrite_orientation: true
+      allow_init_with_backwards_motion: false
+      feasibility_check: true
+      shrink_horizon_min_dist: 0.1
+      shrink_horizon_samples: 12
+
+      # 障碍
+      min_obstacle_dist: 0.65       # robot_radius=0.4 外再保留约0.25m余量
+      inflation_dist: 1.0           # 提前绕障但不把普通通道判成不可行
+      include_costmap_obstacles: true
+      costmap_obstacles_behind_robot_dist: 1.0
+      obstacle_poses_affected: 20
+
+      # 多轨迹并行搜索（新增，关键防撞措施）
+      enable_homotopy_class_planning: true   # 同时探索多条绕行路径
+      max_number_classes: 3                  # 降低近似等价候选间反复竞争
+      selection_cost_hysteresis: 1.8         # 保持绕行侧，但允许明显更优路径接管
+      selection_obst_cost_scale: 1.5
+      alternative_time_diff: 0.5
+      switching_blocking_period: 2.0
+
+      # 优化权重
+      no_inner_iterations: 5
+      no_outer_iterations: 4
+      optimization_activate: true
+      obstacle_cost_exponent: 4.0
+      weight_max_vel_x: 1.0         # 2.0 → 1.0
+      weight_max_vel_theta: 2.0
+      weight_acc_lim_x: 1.5
+      weight_acc_lim_theta: 4.0     # 抑制左右摇摆，但不压死必要转向
+      weight_kinematics_nh: 1000.0
+      weight_kinematics_forward_drive: 1.0
+      weight_kinematics_turning_radius: 1.0
+      weight_optimaltime: 0.7       # 不为抢时间牺牲平顺性和障碍间距
+      weight_obstacle: 300.0        # 明显避障，同时降低轨迹不可行概率
+      weight_inflation: 1.5
+      weight_dynamic_obstacle: 30.0
+      weight_dynamic_obstacle_inflation: 0.5
+      weight_viapoint: 1.5          # 允许局部轨迹为绕障偏离全局中心线
+      weight_adapt_factor: 2.0
+
+      # 可视化
+      visualize: true
+      publish_feedback: true

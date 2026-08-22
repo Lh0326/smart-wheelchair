@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>智慧轮椅室外导航</title>
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2980b9">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="轮椅监控">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+  <link rel="stylesheet" href="vendor/leaflet.css">
+  <link rel="stylesheet" href="../shared/sinki.css">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+  /* 规划点 markers */
+  .waypoint-start { background-color: #2196F3; border-radius: 50%; border: 2px solid white; }
+  .waypoint-corner { background-color: #FFC107; border-radius: 50%; border: 2px solid white; }
+  .waypoint-goal { background-color: #F44336; border-radius: 50%; border: 2px solid white; }
+  .waypoint-current {
+      background-color: #FF5722;
+      border-radius: 50%;
+      border: 3px solid yellow;
+      animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse {
+      0%   { transform: scale(1); opacity: 1; }
+      50%  { transform: scale(1.4); opacity: 0.7; }
+      100% { transform: scale(1); opacity: 1; }
+  }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="map"></div>
+    <div id="sidebar">
+      <h2>智慧轮椅导航</h2>
+
+      <div id="gps-status-card" class="gps-card gps-state-cold">
+        <div class="gps-icon">🛰️</div>
+        <div class="gps-info">
+          <div class="gps-state-label">冷启动中</div>
+          <div class="gps-detail">等待 GNSS 引擎启动</div>
+        </div>
+      </div>
+
+      <div id="status-panel">
+        <div class="status-row">
+          <span class="label">状态</span>
+          <span id="connection-status" class="value disconnected">未连接 ROS2</span>
+        </div>
+        <div class="status-row">
+          <span class="label">中心</span>
+          <span id="map-center" class="value">--</span>
+        </div>
+        <div class="status-row">
+          <span class="label">航向</span>
+          <span id="heading-value" class="value mono">--°</span>
+        </div>
+      </div>
+
+      <div id="goal-panel">
+        <h3>终点选择</h3>
+        <div class="status-row">
+          <span class="label">纬度</span>
+          <span id="goal-lat" class="value mono">--</span>
+        </div>
+        <div class="status-row">
+          <span class="label">经度</span>
+          <span id="goal-lng" class="value mono">--</span>
+        </div>
+        <div class="status-row">
+          <span class="label">来源</span>
+          <span id="goal-source" class="value">--</span>
+        </div>
+        <button id="clear-goal-btn" disabled>清除终点</button>
+        <button id="locate-self-btn" style="background:#2d8f4e;margin-top:6px;">📍 定位到当前位置</button>
+        <!-- 速度档位按键（spec § 2.3）-->
+        <div class="speed-mode-group" style="margin-top:6px;">
+          <div style="font-size:11px;color:#999;margin-bottom:4px;">速度档位</div>
+          <div class="speed-buttons" style="display:flex;gap:4px;">
+            <button id="speed-slow-btn" data-mode="1" class="speed-btn speed-btn-active" style="flex:1;padding:6px;background:#3a5a40;border:none;color:white;border-radius:4px;cursor:pointer;font-weight:bold;">慢速</button>
+            <button id="speed-medium-btn" data-mode="2" class="speed-btn" style="flex:1;padding:6px;background:#357fa0;border:none;color:white;border-radius:4px;cursor:pointer;">中速</button>
+            <button id="speed-fast-btn" data-mode="3" class="speed-btn" style="flex:1;padding:6px;background:#8b5e34;border:none;color:white;border-radius:4px;cursor:pointer;">快速</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="poi-panel">
+        <h3>预设兴趣点</h3>
+        <ul id="poi-list">
+          <li class="loading">加载中...</li>
+        </ul>
+      </div>
+
+      <div id="imu-panel">
+        <h3>IMU 实时数据</h3>
+        <div style="font-size:11px;color:#888;margin-bottom:6px;">HWT906P（含磁力计）· /imu/data</div>
+
+        <!-- 姿态指示器（人工地平仪）-->
+        <div class="attitude-indicator">
+          <div class="attitude-horizon" id="attitude-horizon">
+            <div class="attitude-sky"></div>
+            <div class="attitude-ground"></div>
+            <div class="attitude-pitch-marks"></div>
+          </div>
+          <div class="attitude-aircraft">✚</div>
+          <div class="attitude-roll-arrow" id="attitude-roll-arrow">▼</div>
+        </div>
+
+        <div class="imu-section">姿态 (°)</div>
+        <div class="imu-row"><span>侧倾 roll</span><span id="imu-roll" class="imu-val imu-val-warn">--</span></div>
+        <div class="imu-row"><span>俯仰 pitch</span><span id="imu-pitch" class="imu-val imu-val-warn">--</span></div>
+        <div class="imu-row"><span>航向 yaw</span><span id="imu-yaw" class="imu-val imu-val-info">--</span></div>
+
+        <div class="imu-section">角速度 (°/s)</div>
+        <div class="imu-row"><span>ωx</span><span id="imu-gx" class="imu-val">--</span></div>
+        <div class="imu-row"><span>ωy</span><span id="imu-gy" class="imu-val">--</span></div>
+        <div class="imu-row"><span>ωz</span><span id="imu-gz" class="imu-val">--</span></div>
+
+        <div class="imu-section">加速度 (m/s²)</div>
+        <div class="imu-row"><span>ax</span><span id="imu-ax" class="imu-val">--</span></div>
+        <div class="imu-row"><span>ay</span><span id="imu-ay" class="imu-val">--</span></div>
+        <div class="imu-row"><span>az</span><span id="imu-az" class="imu-val">--</span></div>
+      </div>
+
+      <div id="log-panel">
+        <h3>操作日志</h3>
+        <ul id="log-list"></ul>
+      </div>
+    </div>
+  </div>
+
+  <script src="vendor/leaflet.js"></script>
+  <script src="vendor/roslibjs.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

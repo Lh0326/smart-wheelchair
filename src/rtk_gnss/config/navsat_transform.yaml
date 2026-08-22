@@ -1,0 +1,41 @@
+/**:
+  ros__parameters:
+    # navsat_transform_node 配置
+    # 把 /fix（WGS-84 GPS）+ /imu/data（含 yaw）转成 map frame 的 /odometry/gps
+    # 再从 /odometry/filtered 反向输出 /gps/filtered（EKF 修正后 WGS-84）
+
+    frequency: 30.0
+
+    # 启动延迟（秒），等 IMU 稳定
+    delay: 3.0
+
+    # 磁偏角（昆明约 -1.5° = -0.026 rad）
+    # JY901 输出磁北方位，需修正到真北（与 EC20 GNSS 一致）
+    # Gemini 335L 时代无磁力计，此值为 0；JY901 接入后改为 -0.026
+    magnetic_declination_radians: -0.026
+
+    # IMU yaw 偏移：robot_localization 期望 yaw=0 时朝东（ENU）
+    # 我们的 imu_heading_node 输出 yaw=0 时朝北（指南针角度）
+    # 北 → 东 需要顺时针转 90°，但 ROS ENU 是逆时针为正，所以 +π/2
+    yaw_offset: 1.5707963
+
+    # 海拔置零（避免海拔误差影响水平）
+    zero_altitude: true
+
+    # 发布 utm→world_frame TF（让 ekf_node 能用）
+    broadcast_utm_transform: true
+    broadcast_utm_transform_as_parent_frame: false
+
+    # 关键：发布 /gps/filtered（EKF 修正后的 WGS-84），让前端能用
+    publish_filtered_gps: true
+
+    # 用 IMU 的 yaw（不是 odometry 的 yaw）
+    use_odometry_yaw: false
+
+    # 不等待 datum 服务（用第一个 GPS fix 自动设定原点）
+    wait_for_datum: false
+
+    # 帧
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_link

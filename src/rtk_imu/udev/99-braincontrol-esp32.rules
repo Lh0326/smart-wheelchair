@@ -1,0 +1,28 @@
+# BrainControl stable serial mappings.
+# Install with:
+#   sudo install -m 0644 src/rtk_imu/udev/99-braincontrol-esp32.rules /etc/udev/rules.d/99-braincontrol-esp32.rules
+#   sudo udevadm control --reload-rules && sudo udevadm trigger
+#
+# 实测硬件身份（2026-07-12 二次复核，CSV 数据流 + udevadm 双确认）：
+#   - EEG WIFI 模块 = ESP32-C3 native USB（VID=303a PID=1001）
+#     挂在 USB path 3-6.4，MAC 50:78:7D:76:03:54，1M baud，发 0xAA 触发后流 0xA5 EEG 帧
+#   - 脑控 IMU 模块 = CH340（VID=1a86 PID=7523），115200 baud，主动流 4 字段四元数 CSV
+#     （例：1.00,-0.00,0.00,-0.00），挂在 USB path 3-3.1.3
+#
+# 历史 bug 链：
+#   v1：原 99-rtk-ch340.rules 把 3-3.1.3 当作 CH340 IMU（正确 VID/PID），但因
+#       KERNELS==3-3.1.3 写在错误的父层级（3-3.1 hub 而非 3-3.1.3 设备本身），
+#       规则不匹配。
+#   v2：2026-07-12 第一次"修复"误把脑控 IMU 当作 ESP32-S3（VID=303a:1001），
+#       注释甚至声称读到 ESP-ROM:esp32s3 boot log，导致规则再次不匹配，
+#       /dev/ttyBCIMU 从未创建，BrainControlTab IMU 一直连不上。
+#   v3（本版）：实测 ttyUSB6@3-3.1.3 在 115200 直接流 CSV 四元数（无须触发），
+#       VID=1a86 PID=7523 是 CH340，回到 v1 的 VID/PID，但用正确的 KERNELS 层级。
+
+# EEG WIFI 模块（ESP32-C3）→ /dev/ttyEEG
+SUBSYSTEM=="tty", KERNELS=="3-6.4", ATTRS{idVendor}=="303a", ATTRS{idProduct}=="1001", \
+  SYMLINK+="ttyEEG", MODE="0666"
+
+# 脑控 IMU 模块（CH340）→ /dev/ttyBCIMU
+SUBSYSTEM=="tty", KERNELS=="3-3.1.3", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", \
+  SYMLINK+="ttyBCIMU", MODE="0666"

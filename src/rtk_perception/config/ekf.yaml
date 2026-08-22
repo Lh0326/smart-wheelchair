@@ -1,0 +1,88 @@
+# EKF（robot_localization）配置：融合 IMU + GPS + odom → /odometry/filtered
+#
+# 数据流：
+#   /imu/data（HWT906P/JY901，含 orientation + gyro + accel）
+#     +
+#   /odometry/gps（navsat_transform 把 /fix + /imu/data 转的 map frame odom）
+#     +
+#   /odom（实物模式下 chassis_serial_node dead-reckon；仿真模式下 sim_chassis 提供）
+#     ↓
+#   ekf_node 融合
+#     ↓
+#   /odometry/filtered（map frame，TEB/controller 用）
+#     +
+#   TF: map → odom → base_link
+#
+# 实物模式 vs 仿真模式：
+#   - 实物：/odom 来自 chassis_serial_node（cmd_vel + HWT 航向 dead-reckon；M6 编码器待接入）
+#   - 仿真：/odom 来自 sim_chassis_node（差速模型推算）
+#   两种模式下 EKF 节点本身都能跑，输出值的"真实性"取决于上游
+
+/**:
+  ros__parameters:
+    frequency: 30.0
+    two_d_mode: true                    # 室外轮椅平面运动，禁用 Z 轴融合
+
+    # 静态 TF 来源（base_link → 各传感器）由各自 launch 提供
+    print_diagnostics: false
+    debug: false
+
+    # === 传感器输入 ===
+    # 顺序：odom（底盘/仿真）→ imu（HWT906P）→ gps（navsat_transform 输出）
+    # 各传感器的被融合字段（前 15 列）：x,y,z,roll,pitch,yaw,vx,vy,vz,vroll,vpitch,vyaw,ax,ay,az
+    # true=融合该字段，false=忽略
+
+    odom0: /odom
+    odom0_config: [false, false, false,    # x,y,z（GPS 负责）
+                   false, false, false,    # roll,pitch,yaw（IMU 负责）
+                   true, true, false,      # vx,vy,vz（差速底盘 vx/vy 可靠）
+                   false, false, false,    # vroll,vpitch,vyaw
+                   false, false, false]    # ax,ay,az
+    odom0_differential: false
+    odom0_queue_size: 10
+
+    imu0: /imu/data
+    imu0_config: [false, false, false,     # x,y,z
+                  true, true, true,        # roll,pitch,yaw（HWT906P 含磁力计，绝对方位）
+                  false, false, false,     # vx,vy,vz
+                  true, true, true,        # vroll,vpitch,vyaw（gyro 积分）
+                  false, false, false]     # ax,ay,az（HWT 线加速度含重力/姿态误差，禁用）
+    imu0_differential: false
+    imu0_queue_size: 10
+    # HWT906P orientation 已经是绝对方位（磁力计），不用 differential 模式
+
+    odom1: /odometry/gps
+    odom1_config: [true, true, false,      # x,y,z（GPS 平面位置）
+                   false, false, false,    # roll,pitch,yaw（IMU 负责）
+                   false, false, false,    # vx,vy,vz（让 EKF 自己微分）
+                   false, false, false,
+                   false, false, false]
+    odom1_differential: false
+    odom1_queue_size: 10
+
+    # === 协方差默认值 ===
+    # 真实传感器自带 covariance 时优先用真实值，下面是 fallback
+    process_noise_covariance: [0.05, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                                0.0,    0.05, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                                0.0,    0.0,    0.06, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                                0.0,    0.0,    0.0,    0.03, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                                0.0,    0.0,    0.0,    0.0,    0.03, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                                0.0,    0.0,    0.0,    0.0,    0.0,    0.06, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                                0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.025,0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                                0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.025,0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                                0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.04, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+                                0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.01, 0.0,    0.0,    0.0,    0.0,    0.0,
+                                0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.01, 0.0,    0.0,    0.0,    0.0,
+                                0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.02, 0.0,    0.0,    0.0,
+                                0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.01, 0.0,    0.0,
+                                0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.01, 0.0,
+                                0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.065]
+
+    # === Frame 配置 ===
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_link
+    world_frame: map              # EKF 直接发 map → odom → base_link TF
+
+    # === 发布 ===
+    publish_tf: true              # 发 map → odom TF

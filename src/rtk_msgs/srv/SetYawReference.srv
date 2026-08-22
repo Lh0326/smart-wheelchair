@@ -1,0 +1,16 @@
+# 用户告知当前实际朝向，用于人工校准 IMU 航向
+# 替代磁力计（Gemini 335L 无磁力计）
+
+# direction_deg 取值（与前端 CSS rotate 一致，用户视角）：
+#   0   = 正北（箭头朝上）
+#   90  = 正东（箭头朝右）
+#   180 = 正南（箭头朝下）
+#   270 = 正西（箭头朝左）
+# 其他值允许（用户责任），但前端按钮只发这 4 个
+
+uint16 direction_deg
+---
+# 响应
+bool success
+string message            # "已校准：当前朝向为南 (offset=175.3°)" 等
+float64 offset_applied    # 实际应用的偏移量（度）

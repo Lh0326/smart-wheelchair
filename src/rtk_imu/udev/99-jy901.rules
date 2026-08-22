@@ -1,0 +1,18 @@
+# HWT906P IMU udev 规则
+# 安装：
+#   sudo install -m 0644 src/rtk_imu/udev/99-jy901.rules /etc/udev/rules.d/99-rtk-imu.rules
+#   sudo udevadm control --reload-rules && sudo udevadm trigger
+#
+# 实际硬件：维特智能 HWT906P（不是 JY901，但用同一 WIT 标准协议）
+# USB 芯片：CH340（1a86:7523，无唯一 serial number）
+# 默认波特率：921600（HWT906P 高精度型号默认，区别于 JY901 的 9600）
+#
+# 当前 COM 口重排后，HWT906P 挂在 USB hub 端口 3-3.3。
+# 注意：KERNELS 与 ATTRS 必须来自同一个父设备。旧规则匹配 3-3.1 hub，
+# 再匹配 1a86:7523 子设备，会在二级 hub 拓扑下失效。
+
+SUBSYSTEM=="tty", KERNELS=="3-3.3", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", \
+  SYMLINK+="ttyIMU", MODE="0666"
+
+# 备用：如果改插到其他端口，按以下规则查实际路径
+# udevadm info -a -n /dev/ttyUSBx | grep -E "looking|KERNELS|idVendor|idProduct"

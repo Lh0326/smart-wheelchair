@@ -1,0 +1,14 @@
+2026年 06月 25日 星期四 09:49:47 CST
+AUTOMATED VERIFICATION (no hardware)
+
+Build: PASS
+Unit tests: 99 passed (rtk_perception) + 7 passed (oscillation) = 106 total
+Launch core (no lidar): PASS
+Lifecycle active: YES (controller_server active [3])
+TF map→base_link: OK (translation [0,0,0])
+
+Fixes applied during verification:
+  1. teb_params.yaml: FollowPath.plugin: teb_local_planner::TebLocalPlanner → teb_local_planner::TebLocalPlannerROS
+  2. teb_params.yaml: obstacle_cost_exponent: 4 (int) → 4.0 (double)
+
+Hardware test required: L-shape path with real lidar (see sim_teb_l_shape_test.md)

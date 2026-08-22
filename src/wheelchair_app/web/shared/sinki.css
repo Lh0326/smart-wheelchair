@@ -1,0 +1,70 @@
+/* 沉墨 Deep Ink — 智慧轮椅统一视觉规范 */
+
+:root {
+  --bg: #0F1219;
+  --card-bg: rgba(255,255,255,0.025);
+  --card-bg-darker: #050608;
+  --text: #E8E4DC;
+  --text-bright: #F4ECD8;
+  --text-dim: #B8A98E;
+  --text-muted: #8A7D68;
+  --text-faint: #6A6055;
+  --accent: #D4A574;
+  --accent-soft: rgba(212,165,116,0.12);
+  --danger: #D97557;
+  --danger-soft: rgba(217,117,87,0.12);
+  --safe: #8BA571;
+  --ld14p: #6A9B9B;
+  --gemini: #FFFF00;
+  --border: rgba(212,165,116,0.12);
+  --border-strong: rgba(212,165,116,0.25);
+  --radius: 10px;
+  --radius-sm: 7px;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', 'Noto Sans SC', system-ui, sans-serif;
+  font-size: 13px;
+}
+
+/* 卡片 */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin: 8px;
+  overflow: hidden;
+}
+.card-header {
+  background: var(--card-bg-darker);
+  padding: 8px 14px;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-body { padding: 12px 14px; }
+
+/* 状态点 */
+.dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+.dot.live { background: var(--safe); box-shadow: 0 0 8px var(--safe); }
+.dot.warn { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+
+/* mono 字体类 */
+.mono {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}

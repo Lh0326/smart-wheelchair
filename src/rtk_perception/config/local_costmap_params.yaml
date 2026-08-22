@@ -1,0 +1,78 @@
+# Local costmap 配置（rolling_window，无 static_layer）
+# 三路障碍源：N10P（后方高处 z=1.47m）+ LD14P（前方低处 z=0.13m）+ Gemini 335L（右后方 z=1.25m）
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      update_frequency: 10.0        # 障碍更新延迟由约200ms降到约100ms
+      publish_frequency: 5.0
+      global_frame: odom
+      robot_base_frame: base_link
+      use_sim_time: false
+      rolling_window: true
+      width: 12
+      height: 12
+      resolution: 0.05
+      robot_radius: 0.4
+      plugins: ["obstacle_layer", "inflation_layer"]
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: true
+        # 三路独立进 costmap:N10P + LD14P + camera(/scan_gemini)
+        # 任一路出问题不影响其他路;fusion_scan_node 不被 costmap 依赖
+        observation_sources: scan_n10p scan_ld14p scan_gemini detection_cloud
+        scan_n10p:
+          topic: /scan
+          data_type: LaserScan
+          marking: true
+          clearing: true
+          raytrace_max: 8.0
+          raytrace_min: 0.0
+          obstacle_max_range: 8.0
+          obstacle_min_range: 0.0
+          # 关键修复：source 级别 max_obstacle_height 默认 0.0，
+          # 会导致所有 z>0 的点（N10P 在 z=1.47m）被 z 高度过滤丢弃 → observation cloud 为空
+          # → updateBounds 没点可 mark → costmap 全 free → TEB 无视障碍直撞
+          min_obstacle_height: 0.1    # 低于 0.1m 视为地面噪声（N10P 安装在 1.47m，扫到的障碍 z>=1.47m，不会触发）
+          max_obstacle_height: 2.0    # 2.5→2.0：与 Gemini/LD14P 一致，过滤高悬噪声（树枝等）
+        scan_ld14p:
+          topic: /scan_ld14p
+          data_type: LaserScan
+          marking: true
+          clearing: true
+          raytrace_max: 5.0
+          raytrace_min: 0.0
+          obstacle_max_range: 5.0
+          obstacle_min_range: 0.0
+          # 关键修复：同上（LD14P 在 z=0.13m）
+          min_obstacle_height: 0.05
+          max_obstacle_height: 2.5
+        scan_gemini:
+          topic: /scan_gemini
+          data_type: LaserScan
+          marking: true
+          clearing: true
+          raytrace_max: 5.0
+          raytrace_min: 0.0
+          obstacle_max_range: 5.0
+          obstacle_min_range: 0.0    # 自车区域由 /scan_gemini_raw -> /scan_gemini 矩形滤波处理
+          # /scan_gemini frame_id=camera_depth_frame(z≈1.25m),costmap 通过 TF 转换后
+          # 落在 [0.1, 2.0] 内,正常进 obstacle + inflation layer
+          min_obstacle_height: -0.2
+          max_obstacle_height: 2.0
+        # === Phase C:YOLO 语义避障 ===
+        # PointCloud2 在 base_link 系。每个检测中心 1 个点,clearing=false
+        # 让 YOLO 检测不参与 raytrace(避免误清掉雷达扫到的真实障碍)。
+        detection_cloud:
+          topic: /detection_cloud
+          data_type: PointCloud2
+          marking: true
+          clearing: false
+          obstacle_max_range: 8.0
+          obstacle_min_range: 0.0
+          min_obstacle_height: 0.1
+          max_obstacle_height: 2.5
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        enabled: true
+        inflation_radius: 1.0      # 保留提前绕障空间，同时避免窄路被高代价填满
+        cost_scaling_factor: 3.0   # 中等梯度，兼顾绕障趋势和通道可通过性

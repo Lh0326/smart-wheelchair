@@ -1,0 +1,330 @@
+.layout {
+  display: grid;
+  grid-template-columns: 1.7fr 1fr;   /* 1.4→1.7: 让左侧相机区域更宽，减少 contain 黑边视觉影响 */
+  grid-template-rows: 1.6fr 1fr;
+  gap: 10px;
+  padding: 10px;
+  height: calc(100vh - 10px);
+  background: var(--bg);
+}
+
+.camera-card { grid-column: 1; grid-row: 1 / span 2; }
+.radar-card { grid-column: 2; grid-row: 1; }
+.asr-card { grid-column: 2; grid-row: 2; }
+
+.camera-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;       /* 撑满 grid cell */
+  min-height: 0;
+}
+
+.camera-body {
+  position: relative;
+  padding: 0;
+  background: #000;
+  flex: 1 1 auto;     /* 占满 camera-card 减去 header 的高度 */
+  min-height: 0;
+  overflow: hidden;
+}
+
+#camera-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;  /* 完整显示画面，保持比例不裁剪；上下/左右可能有黑边（与 camera-body #000 背景融合） */
+  background: #000;
+}
+
+#detection-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.camera-placeholder {
+  color: var(--text-muted);
+  text-align: center;
+}
+.placeholder-icon { font-size: 48px; opacity: 0.3; }
+.placeholder-text { font-size: 14px; margin-top: 8px; color: var(--text-dim); }
+.placeholder-hint { font-size: 11px; margin-top: 4px; color: var(--text-faint); }
+
+.radar-body {
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#radar-canvas {
+  width: 100%;
+  max-width: 400px;
+  aspect-ratio: 1;
+}
+
+.legend {
+  margin-left: auto;
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.legend-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 3px;
+}
+.legend-dot.n10p { background: var(--accent); }
+.legend-dot.ld14p { background: var(--ld14p); }
+.legend-dot.gemini { background: #B571A5; }
+
+.asr-body {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+#asr-log {
+  font-family: 'Geist Mono', monospace;
+  font-size: 12px;
+  flex: 1;
+  overflow-y: auto;
+  max-height: 150px;
+}
+
+.asr-line {
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-dim);
+}
+.asr-line.placeholder { font-style: italic; color: var(--text-faint); }
+.asr-line .ts { color: var(--text-muted); margin-right: 8px; }
+
+.badge {
+  background: var(--accent-soft);
+  color: var(--accent);
+  padding: 1px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+/* 方位距离覆盖层 */
+.radar-body {
+  position: relative;
+}
+
+.dir-overlay {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  pointer-events: none;
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+}
+
+.dir-item {
+  position: absolute;
+  background: rgba(15, 18, 25, 0.85);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 8px;
+  color: var(--accent);
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.dir-item span {
+  color: var(--text-bright);
+  font-weight: normal;
+}
+
+/* 前=上, 后=下, 左=左, 右=右 */
+.dir-front { top: 22px; left: 50%; transform: translateX(-50%); }
+.dir-back  { bottom: 22px; left: 50%; transform: translateX(-50%); }
+.dir-left  { top: 50%; left: 4px; transform: translateY(-50%); }
+.dir-right { top: 50%; right: 4px; transform: translateY(-50%); }
+
+/* === 语音状态卡片 === */
+.voice-status {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  margin-bottom: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+/* 状态颜色变化 */
+.voice-status[data-state="idle"] { color: var(--text-muted); }
+.voice-status[data-state="listening"] {
+  color: var(--accent);
+  background: rgba(212,165,116,0.08);
+  border-color: var(--accent);
+  box-shadow: 0 0 16px rgba(212,165,116,0.2);
+}
+.voice-status[data-state="processing"] {
+  color: var(--safe);
+  background: rgba(139,165,113,0.08);
+  border-color: var(--safe);
+}
+
+.voice-icon {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* listening 时麦克风脉冲动画 */
+.voice-status[data-state="listening"] .voice-icon {
+  animation: mic-pulse 1.5s ease-in-out infinite;
+}
+@keyframes mic-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+/* processing 时旋转 */
+.voice-status[data-state="processing"] .voice-icon {
+  animation: mic-spin 2s linear infinite;
+}
+@keyframes mic-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 音波(listening 时显示) */
+.sound-wave {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  pointer-events: none;
+}
+.voice-status[data-state="listening"] .sound-wave {
+  display: flex;
+}
+.sound-wave span {
+  display: block;
+  width: 3px;
+  background: var(--accent);
+  border-radius: 2px;
+  animation: wave-bounce 0.8s ease-in-out infinite;
+}
+.sound-wave span:nth-child(1) { height: 14px; animation-delay: 0s; }
+.sound-wave span:nth-child(2) { height: 28px; animation-delay: 0.1s; }
+.sound-wave span:nth-child(3) { height: 40px; animation-delay: 0.2s; }
+.sound-wave span:nth-child(4) { height: 28px; animation-delay: 0.3s; }
+.sound-wave span:nth-child(5) { height: 14px; animation-delay: 0.4s; }
+@keyframes wave-bounce {
+  0%, 100% { transform: scaleY(0.4); opacity: 0.5; }
+  50% { transform: scaleY(1.2); opacity: 1; }
+}
+
+.voice-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.voice-state-text {
+  font-size: 16px;
+  font-weight: 600;
+}
+.voice-status[data-state="idle"] .voice-state-text { color: var(--text-muted); }
+.voice-status[data-state="listening"] .voice-state-text { color: var(--accent); }
+.voice-status[data-state="processing"] .voice-state-text { color: var(--safe); }
+
+.voice-hint {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.voice-countdown {
+  font-size: 28px;
+  font-weight: 700;
+  font-family: 'Geist Mono', monospace;
+  color: var(--accent);
+  display: none;
+}
+.voice-status[data-state="listening"] .voice-countdown {
+  display: block;
+}
+
+/* === 硬件监控条(底部固定) === */
+.hw-strip {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--card-bg-darker, #050608);
+  border-top: 1px solid var(--border, rgba(212,165,116,0.12));
+  padding: 6px 14px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  z-index: 100;
+}
+
+.hw-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hw-label {
+  color: var(--text-faint, #6A6055);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  min-width: 38px;
+}
+
+.hw-bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.hw-bar-fill {
+  height: 100%;
+  background: var(--accent, #D4A574);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.hw-bar-fill.hw-gpu { background: #6A9B9B; }   /* 青 */
+.hw-bar-fill.hw-npu { background: #8BA571; }   /* 绿 */
+.hw-bar-fill.hw-mem { background: #B8A98E; }   /* 灰金 */
+
+.hw-metric {
+  color: var(--text-dim, #B8A98E);
+  font-size: 11px;
+  min-width: 70px;
+  text-align: right;
+}
+
+/* hw-strip 已删除（硬件监控由 PyQt5 MainWindow QStatusBar 统一显示）。
+ * layout 不再需要 padding-bottom 留空间。 */

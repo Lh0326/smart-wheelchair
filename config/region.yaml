@@ -1,0 +1,30 @@
+# 测试区域配置（M1 阶段）
+# 测试场地：昆明理工大学呈贡校区（夜间实地测试场地）
+# 数据范围：呈贡校区及周边约 5km × 5km，覆盖校园及周边主要道路（M3 阶段扩大）
+
+region:
+  name: "昆明理工大学呈贡校区及周边 5km×5km"
+  # 西南角经纬度（5km×5km 扩大范围）
+  south_west:
+    lat: 24.8326     # 原 24.8479747
+    lon: 102.8305    # 原 102.8490221
+  # 东北角经纬度
+  north_east:
+    lat: 24.8776     # 原 24.8622145
+    lon: 102.8801    # 原 102.8607839
+  # 中心点（用于前端初始视图）
+  center:
+    lat: 24.8551
+    lon: 102.8553
+
+# 注：mbtiles 瓦片范围本次不扩大（保持 1.4km×1.4km）
+# 前端依赖 ArcGIS World Imagery 在线瓦片；离线瓦片后续单独决策
+tiles_zoom_min: 15
+tiles_zoom_max: 18
+
+# 离线数据输出路径
+output:
+  osm_pbf: "data/region.osm.pbf"
+  mbtiles: "data/region.mbtiles"
+  osrm_base: "data/region"
+  roads_geojson: "data/region_roads.geojson"

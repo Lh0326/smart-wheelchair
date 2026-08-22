@@ -1,0 +1,55 @@
+2026-06-25 TEB 硬件层集成验证
+
+雷达：N10P + LD14P 已连接（/dev/LD14P -> ttyACM1, /dev/ttyUSB*）
+launch：sim_navigation_teb.launch.py
+launch log：/tmp/teb_launch.log（已归档本次启动）
+
+节点拓扑实测：
+- /robot_state_publisher
+- /ldlidar_publisher_ld14p（LD14P 驱动，命名空间 /）
+- /x10/lslidar_driver_node（N10P 驱动，命名空间 /x10，scan 话题 remap 到 /scan）
+- /networkx_planner
+- /path_to_baselink_node（注：rclpy 注册了 2 个 publisher 句柄，疑似残留）
+- /path_feeder_node
+- /controller_server（lifecycle managed）
+- /local_costmap/local_costmap（作为 controller_server 子组件运行）
+- /lifecycle_manager
+- /safety_chain_node
+- /sim_chassis_node
+- /mbtiles_server
+- /rosbridge_websocket（port 9091）
+- /rviz2
+- /frontend_static_server（注：端口 8000 启动失败——Address already in use，但不影响导航栈）
+
+测试结果：
+- [x] 所有节点存活（含 N10P + LD14P 雷达驱动）
+- [x] controller_server lifecycle active [3]
+- [x] /scan 频率 ~10Hz（N10P，frame_id=laser，stamps 连续递增 1782352956→1782352963）
+- [x] /scan_ld14p 频率 ~10Hz（LD14P，frame_id=ld14p_link，stamps 1782352948→1782352954）
+- [x] /local_costmap/costmap_updates 有数据（实测更新块 x=78 y=78 42×42 cells）
+- [x] TF map → base_link 链完整（python tf2 lookup 成功）
+- [~] /controller_server/follow_path action 已注册（client=path_feeder，但 **server=0**）
+       **问题**：controller_server 实际监听的是 /follow_path（2 个 server 实例，重复），
+       path_feeder 却连到 /controller_server/follow_path（无 server）。
+       Action 话题命名不匹配，端到端导航会被卡住。属于 launch/action remap 问题，
+       不是硬件集成问题。本次硬件验证不阻塞。
+- [x] /nav_path 接线正确：path_to_baselink → path_feeder + rviz2（订阅）
+- [x] /cmd_vel 接线正确：controller_server (pub) → safety_chain_node (sub)
+- [x] /cmd_vel_safe 接线正确：safety_chain_node (pub) → sim_chassis_node (sub)
+- [x] sim_chassis 响应 cmd_vel_safe（实测：发 linear.x=0.3 持续 1s，
+       odom→base_link translation.y 从 0.200 变到 0.512，delta=0.312m ≈ 0.3m/s×1s，符合预期）
+
+总结：硬件集成 PASS（雷达数据已进入 costmap、sim_chassis 响应正常、TF 链完整）
+
+已知非阻塞问题（不影响本次硬件层验证结论）：
+1. /follow_path 与 /controller_server/follow_path 命名不匹配 —— 端到端路径跟踪会失败
+2. /cmd_vel 的 linear.x 在 sim_chassis 中被解释为 y 方向移动（heading=0 时）—— sim 实现细节
+3. frontend_static_server 端口 8000 占用 —— 与本测试无关
+4. launch 日志持续输出 RTPS_TRANSPORT_SHM Error（open_and_lock_file failed）
+   —— FastRTPS 共享内存段权限问题，不影响数据传输（实测所有 topic 数据流都正常）
+5. ROS_PACKAGE_PATH 显示为空，但 AMENT_PREFIX_PATH 完整，ros2 pkg list 正常
+   —— 不影响运行
+
+剩余：L 形路径端到端测试需要用户在前端点击终点触发
+（参考 tests/sim_teb_l_shape_test.md）
+注意：在解决 follow_path 命名问题之前，端到端测试无法通过；需先修复 launch 配置。

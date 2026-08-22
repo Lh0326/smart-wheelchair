@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<auto_refresh_state value="true"/>
+<plot_axis>
+  <ymin value="-1.5"/>
+  <ymax value="1.5"/>
+</plot_axis>
+<curve_list>
+  <curve name="/cmd_vel.linear.x" color="#00aa00"/>
+  <curve name="/cmd_vel.angular.z" color="#aa0000"/>
+  <curve name="/debug/deviation.data" color="#aaaa00"/>
+</curve_list>

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>智慧轮椅室外导航 - 项目状态看板</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #f3f4f6;
+      color: #1f2937;
+      padding: 24px;
+      line-height: 1.5;
+    }
+    .header {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .header h1 {
+      font-size: 22px;
+      margin-bottom: 8px;
+      color: #111827;
+    }
+    .header .meta {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 16px;
+    }
+    .progress-bar {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding: 12px 16px;
+      background: #f9fafb;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+    .progress-bar .item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .progress-bar .label { font-weight: 500; }
+    .progress-bar .pct { color: #6b7280; font-size: 13px; }
+    .legend {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-size: 13px;
+      color: #4b5563;
+    }
+    .legend .item { display: flex; align-items: center; gap: 6px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 1024px) {
+      .grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 720px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      overflow: hidden;
+      border-left: 4px solid #6b7280;
+      display: flex;
+      flex-direction: column;
+    }
+    .card.done { border-left-color: #22c55e; }
+    .card.partial { border-left-color: #eab308; }
+    .card.blocked { border-left-color: #ef4444; }
+    .card.waiting { border-left-color: #9ca3af; }
+    .card-header {
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #111827;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card-title .name { display: flex; align-items: center; gap: 8px; }
+    .card-progress {
+      font-size: 13px;
+      color: #6b7280;
+      font-weight: 500;
+    }
+    .card-body {
+      padding: 12px 20px;
+      flex: 1;
+    }
+    .task {
+      font-size: 13px;
+      padding: 5px 0;
+      color: #374151;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    .task .icon { flex-shrink: 0; }
+    .task .dep {
+      color: #6b7280;
+      font-size: 12px;
+      margin-left: 4px;
+    }
+    .task.done { color: #6b7280; }
+    .task.done .text { text-decoration: line-through; text-decoration-color: #d1d5db; }
+    .task.partial .dep { color: #a16207; }
+    .task.blocked .dep { color: #b91c1c; }
+    .hw-dep {
+      margin-top: 12px;
+      padding: 8px 12px;
+      background: #fef3c7;
+      border-left: 3px solid #f59e0b;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #92400e;
+    }
+    .hw-dep.waiting-hw {
+      background: #f3f4f6;
+      border-left-color: #9ca3af;
+      color: #4b5563;
+    }
+    .note {
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: #eff6ff;
+      border-left: 3px solid #3b82f6;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #1e40af;
+    }
+    .limits {
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: #fef2f2;
+      border-left: 3px solid #f87171;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #991b1b;
+    }
+    .limits ul { margin: 4px 0 0 16px; padding: 0; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>智慧轮椅室外导航 - 项目状态看板</h1>
+    <div class="meta">最后更新：2026-06-21 · 详细文档：<code>docs/HANDOFF.md</code></div>
+    <div class="progress-bar">
+      <div class="item"><span>✅ M1 地图层</span><span class="pct">100%</span></div>
+      <div class="item"><span>🟡 M2 定位层</span><span class="pct">50%（DGPS 跳过）</span></div>
+      <div class="item"><span>✅ M3 规划层</span><span class="pct">100%</span></div>
+      <div class="item"><span>🔴 M4 感知集成</span><span class="pct">0%</span></div>
+      <div class="item"><span>🔴 M5 规划执行</span><span class="pct">0%</span></div>
+      <div class="item"><span>⏸️ M6 底盘控制</span><span class="pct">0%</span></div>
+    </div>
+    <div class="legend">
+      <div class="item">✅ 完成</div>
+      <div class="item">🟡 部分可做（无硬件阻塞）</div>
+      <div class="item">🔴 阻塞（等硬件或多模块协同）</div>
+      <div class="item">⏸️ 待硬件（根本性硬件）</div>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <!-- M1 -->
+    <div class="card done">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="name">✅ M1 地图层</span>
+          <span class="card-progress">100%</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="task done"><span class="icon">✓</span><span class="text">离线数据脚本（download_region.py + prepare_osrm.sh）</span></div>
+        <div class="task done"><span class="icon">✓</span><span class="text">mbtiles 瓦片服务（rtk_map）</span></div>
+        <div class="task done"><span class="icon">✓</span><span class="text">Leaflet 前端（rtk_frontend）</span></div>
+        <div class="task done"><span class="icon">✓</span><span class="text">GoalGPS 自定义消息（rtk_msgs）</span></div>
+        <div class="task done"><span class="icon">✓</span><span class="text">整体 launch（rtk_bringup）</span></div>
+        <div class="task done"><span class="icon">✓</span><span class="text">真实 EC20F GNSS 接入</span></div>
+        <div class="task done"><span class="icon">✓</span><span class="text">Gemini 335L IMU 方向显示（向量投影 + bias 校准）</span></div>
+        <div class="task done"><span class="icon">✓</span><span class="text">ArcGIS World Imagery 瓦片源（WGS-84）</span></div>
+        <div class="task done"><span class="icon">✓</span><span class="text">OSRM 公共服务器路径规划</span></div>
+        <div class="task done"><span class="icon">✓</span><span class="text">一键定位按钮 + 实时调试面板</span></div>
+      </div>
+    </div>
+
+    <!-- M2 -->
+    <div class="card partial">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="name">🟡 M2 定位层</span>
+          <span class="card-progress">50%</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="task done"><span class="icon">✓</span><span class="text">EC20 NMEA 解析（ec20_gnss_node.py）</span></div>
+        <div class="task done"><span class="icon">✓</span><span class="text">IMU 方向积分（imu_heading_node.py，向量投影法）</span></div>
+        <div class="task done"><span class="icon">✓</span><span class="text">前端实时位置 + 方向显示</span></div>
+        <div class="task blocked"><span class="icon">🔴</span><span class="text">DGPS 节点（位置域差分）<span class="dep">需 DX-GP10-A 到货</span></span></div>
+        <div class="task blocked"><span class="icon">🔴</span><span class="text">基站标定（24h 静态平均）<span class="dep">需 DX-GP10-A 到货</span></span></div>
+        <div class="task partial"><span class="icon">🟡</span><span class="text">EKF 多传感器融合（robot_localization）<span class="dep">需 DGPS 输出</span></span></div>
+        <div class="task partial"><span class="icon">🟡</span><span class="text">长停检测 + 航向锁定<span class="dep">可独立开发</span></span></div>
+        <div class="hw-dep">硬件依赖：DX-GP10-A(TO) V5.3.0（深圳大夏龙雀科技，待采购）</div>
+        <div class="note">方案 2026-06-21 调整：放弃 VINS-Fusion，改用位置域 DGPS。算法规格见 <code>docs/智慧轮椅_DGPS差分定位算法.md</code></div>
+      </div>
+    </div>
+
+    <!-- M3 -->
+    <div class="card done">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="name">✅ M3 规划层</span>
+          <span class="card-progress">100%</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="task done"><span class="icon">✓</span><span class="text">ROS2 节点封装 OSRM（rtk_planner）</span></div>
+        <div class="task done"><span class="icon">✓</span><span class="text">自定义消息 rtk_msgs/GlobalPlan</span></div>
+        <div class="task done"><span class="icon">✓</span><span class="text">本地 OSRM 优先 + 公共 fallback</span></div>
+        <div class="task done"><span class="icon">✓</span><span class="text">5km×5km 本地 OSM 数据</span></div>
+        <div class="task done"><span class="icon">✓</span><span class="text">前端订阅 /global_plan（不再直 fetch OSRM）</span></div>
+        <div class="task done"><span class="icon">✓</span><span class="text">13 项单元测试覆盖所有状态分支</span></div>
+        <div class="limits">
+          已知限制：
+          <ul>
+            <li>本地 OSRM 实测任何两点都 NoRoute（中国 OSM 步行路网稀疏）</li>
+            <li>所有路径规划请求实际由公共 OSRM 兜底</li>
+            <li>完全离线时路径规划不可用</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- M4 -->
+    <div class="card blocked">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="name">🔴 M4 感知集成</span>
+          <span class="card-progress">0%</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="task partial"><span class="icon">🟡</span><span class="text">感知层接入（ladar-ai：lidar_zone + camera_detect）<span class="dep">需 USB-TTL 转接板 ¥20-50</span></span></div>
+        <div class="task partial"><span class="icon">🟡</span><span class="text">cmd_vel 安全链节点<span class="dep">可用 mock 数据开发</span></span></div>
+        <div class="task partial"><span class="icon">🟡</span><span class="text">障碍分级（5m 绕行 / 3m 减速 / 1m 急停）<span class="dep">可开发</span></span></div>
+        <div class="task partial"><span class="icon">🟡</span><span class="text">语音播报（复用 ladar-ai tts_node）<span class="dep">可独立开发</span></span></div>
+        <div class="task partial"><span class="icon">🟡</span><span class="text">动态障碍向我运动检测<span class="dep">可开发</span></span></div>
+        <div class="hw-dep">硬件依赖：N10P 雷达（已有）+ USB-TTL 转接板 CP2102/CH340（待采购 ¥20-50）</div>
+      </div>
+    </div>
+
+    <!-- M5 -->
+    <div class="card blocked">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="name">🔴 M5 规划执行</span>
+          <span class="card-progress">0%</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="task partial"><span class="icon">🟡</span><span class="text">path_to_map_frame 转换节点<span class="dep">可独立开发</span></span></div>
+        <div class="task blocked"><span class="icon">🔴</span><span class="text">Nav2 配置（costmap + TEB + BT）<span class="dep">需 M2+M4 完成</span></span></div>
+        <div class="task blocked"><span class="icon">🔴</span><span class="text">自定义 BT 节点（绕行 + 恢复）<span class="dep">需 M4</span></span></div>
+        <div class="task blocked"><span class="icon">🔴</span><span class="text">全局路径重对齐节点<span class="dep">需 Nav2</span></span></div>
+        <div class="task blocked"><span class="icon">🔴</span><span class="text">卡死恢复机制<span class="dep">需 Nav2</span></span></div>
+        <div class="note">无新硬件依赖，但强依赖 M2（DGPS）+ M4（感知）完成</div>
+      </div>
+    </div>
+
+    <!-- M6 -->
+    <div class="card waiting">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="name">⏸️ M6 底盘控制</span>
+          <span class="card-progress">0%</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="task blocked"><span class="icon">🔴</span><span class="text">调研轮椅控制器协议<span class="dep">需底盘硬件</span></span></div>
+        <div class="task blocked"><span class="icon">🔴</span><span class="text">串口/CAN 适配节点<span class="dep">需底盘硬件</span></span></div>
+        <div class="task blocked"><span class="icon">🔴</span><span class="text">硬件急停按钮<span class="dep">需底盘硬件</span></span></div>
+        <div class="task blocked"><span class="icon">🔴</span><span class="text">速度限制器<span class="dep">需底盘硬件</span></span></div>
+        <div class="hw-dep waiting-hw">硬件依赖：轮椅底盘（未采购）</div>
+        <div class="note">M2-M5 全部输出 cmd_vel ROS2 话题，等底盘到货插上即可。软件开发不被阻塞。</div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
