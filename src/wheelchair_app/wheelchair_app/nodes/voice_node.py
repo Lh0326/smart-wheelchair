@@ -37,13 +37,13 @@ from rclpy.node import Node
 from std_msgs.msg import String
 
 # 加入 ai-model + ladar-ai 路径
-AI_MODEL_SRC = _MODELS_ROOT + '/src'
-LADAR_AI_SRC = _MODELS_ROOT + '/src'
+AI_MODEL_SRC = _WS_ROOT + '/third_party/ai_model_src'
+LADAR_AI_SRC = _WS_ROOT + '/third_party/ladar_ai/src/ladar_ai'
 for p in (AI_MODEL_SRC, LADAR_AI_SRC):
     if p not in sys.path:
         sys.path.insert(0, p)
 
-PIPER_MODEL_DIR = _MODELS_ROOT + '/models/voice/tts/piper-zh_CN-huayan-medium'
+PIPER_MODEL_DIR = _MODELS_ROOT + '/voice/tts/piper-zh_CN-huayan-medium'
 
 try:
     from voice_pipeline import VoicePipeline, State

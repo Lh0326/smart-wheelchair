@@ -1,0 +1,10 @@
+# 系统状态（供前端展示）
+std_msgs/Header header
+ladar_ai/ZoneDistances zones
+ladar_ai/Detections front_detections
+string last_tts_text
+string voice_state
+bool[5] node_status
+float32 npu_usage
+float32 cpu_usage
+float32 mem_usage_gb

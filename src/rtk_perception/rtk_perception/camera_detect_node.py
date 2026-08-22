@@ -33,7 +33,7 @@ from geometry_msgs.msg import Point
 from rtk_msgs.msg import Detection, DetectionArray
 
 # 复用 ladar-ai
-sys.path.insert(0, _MODELS_ROOT + '/src/ladar_ai')
+sys.path.insert(0, _WS_ROOT + '/third_party/ladar_ai/src/ladar_ai')
 try:
     from yolo_engine import create_yolo_engine, detect
     LADAR_AI_AVAILABLE = True
@@ -56,7 +56,7 @@ except ImportError:
     np = None
 
 
-YOLO_MODEL_PATH = _MODELS_ROOT + '/models/yolo/yolo11s_openvino/yolo11s.xml'
+YOLO_MODEL_PATH = _MODELS_ROOT + '/yolo/yolo11s_openvino/yolo11s.xml'
 DEVICE = 'NPU'
 CONF_THRESHOLD = 0.5
 DETECTION_HZ = 15.0

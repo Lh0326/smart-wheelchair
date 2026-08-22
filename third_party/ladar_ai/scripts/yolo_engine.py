@@ -310,9 +310,9 @@ def create_yolo_engine(model_path: str = "", conf: float = 0.5, device: str = "N
     2. YOLO11s FP16 OpenVINO IR（NPU 兼容）
     3. yolo26s.pt ultralytics PyTorch（兜底）
     """
-    int8_xml = "" + _MODELS_ROOT + "/models/yolo/yolo11s_int8_openvino/yolo11s.xml"
-    fp16_xml = "" + _MODELS_ROOT + "/models/yolo/yolo11s_openvino/yolo11s.xml"
-    pt_model = "" + _MODELS_ROOT + "/models/yolo/yolo26s.pt"
+    int8_xml = "" + _MODELS_ROOT + "/yolo/yolo11s_int8_openvino/yolo11s.xml"
+    fp16_xml = "" + _MODELS_ROOT + "/yolo/yolo11s_openvino/yolo11s.xml"
+    pt_model = "" + _MODELS_ROOT + "/yolo/yolo26s.pt"
 
     if not model_path:
         # 优先 INT8，其次 FP16，最后 PT

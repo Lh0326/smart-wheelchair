@@ -1,0 +1,10 @@
+# 8方位雷达最近距离
+std_msgs/Header header
+float32 front_left
+float32 front
+float32 front_right
+float32 right
+float32 rear_right
+float32 rear
+float32 rear_left
+float32 left

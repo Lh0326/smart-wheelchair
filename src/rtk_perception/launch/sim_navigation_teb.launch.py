@@ -14,10 +14,7 @@ _MODELS_ROOT = _os.environ.get("MODELS_ROOT", _os.path.join(_WS_ROOT, "models"))
 
 启动方式：
   source /opt/ros/humble/setup.bash
-  source " + _WS_ROOT + "/third_party/teb_ws_install/install/setup.bash
-  source " + _WS_ROOT + "/third_party/lidar_ros2_ws/install/setup.bash
-  source " + _MODELS_ROOT + "/third_party/ldlidar_ws/install/setup.bash
-  source " + _WS_ROOT + "/install/setup.bash
+  source $WS_ROOT/source_env.sh   # 一键加载（含下方全部 source 与环境变量）
   ros2 launch rtk_perception sim_navigation_teb.launch.py
 
 差异（与 sim_navigation.launch.py）：

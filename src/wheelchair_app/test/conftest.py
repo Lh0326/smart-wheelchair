@@ -18,7 +18,7 @@ import rclpy
 
 # ladar_ai.msg 是 rosidl 生成的 Python 包，安装在 ladar-ai workspace 的 dist-packages 下。
 # 测试需要订阅 /tts_request (TTSRequest)，因此把该路径加入 sys.path。
-_LADAR_AI_DIST = _MODELS_ROOT + '/install/ladar_ai/local/lib/python3.10/dist-packages'
+_LADAR_AI_DIST = _WS_ROOT + '/third_party/ladar_ai_install/ladar_ai/local/lib/python3.10/dist-packages'
 if _LADAR_AI_DIST not in sys.path:
     sys.path.insert(0, _LADAR_AI_DIST)
 

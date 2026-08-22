@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 from ladar_ai.tts_segment import segment_text
 
 # 模型路径（与 ai-model 一致）
-TTS_DIR = "" + _MODELS_ROOT + "/models/voice/tts/kokoro-int8-multi-lang-v1_1"
+TTS_DIR = "" + _MODELS_ROOT + "/voice/tts/kokoro-int8-multi-lang-v1_1"
 
 # 默认 TTS 参数
 _TTS_SPEAKER_ID = 45
@@ -216,7 +216,7 @@ class TTSEngine:
 
         # Piper 引擎（可选，作为主引擎优先使用）
         # 注：_piper_engine 默认值 None 已在 __init__ 开头初始化
-        piper_dir = "" + _MODELS_ROOT + "/models/voice/tts/piper-zh_CN-huayan-medium"
+        piper_dir = "" + _MODELS_ROOT + "/voice/tts/piper-zh_CN-huayan-medium"
         if os.path.isdir(piper_dir):
             try:
                 from ladar_ai.tts_engine_piper import PiperTTSEngine

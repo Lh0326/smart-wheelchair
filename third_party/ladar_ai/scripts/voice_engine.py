@@ -40,8 +40,8 @@ _PROJECT_VOICE_DIR = os.path.abspath(
 )
 _VOICE_ROOTS = [
     os.environ.get("LADAR_AI_VOICE_MODEL_ROOT", ""),
-    "" + _MODELS_ROOT + "/models/voice",
-    "" + _MODELS_ROOT + "/models/voice",
+    "" + _MODELS_ROOT + "/voice",
+    "" + _MODELS_ROOT + "/voice",
     _PROJECT_VOICE_DIR,
 ]
 

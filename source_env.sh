@@ -23,4 +23,11 @@ for pkg in lslidar_driver lslidar_msgs; do
     [ -d "$P" ] && export AMENT_PREFIX_PATH="$P:$AMENT_PREFIX_PATH"
 done
 
+
+# LD14P 驱动（ldlidar）
+[ -f "$WS_ROOT/third_party/ldlidar_install/setup.bash" ] && source "$WS_ROOT/third_party/ldlidar_install/setup.bash" 2>/dev/null || true
+
+# ladar_ai 包（TTS/语音引擎）
+[ -f "$WS_ROOT/third_party/ladar_ai_install/setup.bash" ] && source "$WS_ROOT/third_party/ladar_ai_install/setup.bash" 2>/dev/null || true
+
 echo "[env] WS_ROOT=$WS_ROOT  MODELS_ROOT=$MODELS_ROOT"

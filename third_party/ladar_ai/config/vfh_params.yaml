@@ -1,0 +1,30 @@
+obstacle_avoidance_node:
+  ros__parameters:
+    safety_distance_m: 0.5
+    danger_distance_m: 1.5
+    sector_deg: 5.0
+    threshold_low: 0.2
+    threshold_high: 0.9
+    max_turn_rate_rad_s: 0.8
+    max_speed_m_s: 0.6
+    min_turn_radius_m: 0.5
+    cost_weight_target: 1.0
+    cost_weight_heading: 0.3
+    angular_kp: 1.2
+    front_fov_half_deg: 60.0
+    cost_weight_prev_dir: 0.6
+    angular_smoothing_alpha: 0.4
+    hysteresis_dead_band_rad: 0.15
+    intent_timeout_teleop_sec: 2.0
+    intent_timeout_bci_sec: 0.5
+    intent_timeout_voice_sec: 1.0
+    cruise_speed_m_s: 0.0
+    bci_max_speed_m_s: 0.4
+    control_loop_hz: 20.0
+
+laser_merger_node:
+  ros__parameters:
+    input_scan_a: "/scan"
+    input_scan_b: "/scan_depth"
+    output_scan: "/scan_fused"
+    merge_strategy: "min_range"

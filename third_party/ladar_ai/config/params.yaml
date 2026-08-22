@@ -1,0 +1,38 @@
+ladar_ai:
+  ros__parameters:
+    # 雷达参数
+    danger_threshold: 3.0
+    urgent_threshold: 1.0
+    range_min: 0.15
+    range_max: 25.0
+    min_cluster_points: 3
+    cluster_tolerance_m: 0.25
+    self_filter_min_range_m: 1.8
+    smoothing_alpha: 0.45
+    broadcast_cooldown_sec: 15.0
+    global_broadcast_cooldown_sec: 12.0
+    distance_change_threshold: 0.5
+
+    # YOLO 参数
+    model_path: "models/yolov8s.pt"
+    confidence_threshold: 0.5
+    target_classes: [0, 1, 2, 3, 5, 7, 9]
+
+    # 语音参数
+    sample_rate: 16000
+    max_recording_duration: 4.0
+    wake_words: ["小智你好", "小志你好", "心语启动"]
+
+    # Web 参数
+    web_port: 5000
+
+    # 方位角度定义 (度)
+    zones:
+      front: [337.5, 22.5]
+      front_right: [22.5, 67.5]
+      right: [67.5, 112.5]
+      rear_right: [112.5, 157.5]
+      rear: [157.5, 202.5]
+      rear_left: [202.5, 247.5]
+      left: [247.5, 292.5]
+      front_left: [292.5, 337.5]

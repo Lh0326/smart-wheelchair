@@ -1,0 +1,7 @@
+sherpa-onnx>=1.10.0
+ultralytics>=8.4.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+sounddevice>=0.4.6
+scipy>=1.11.0
+flask>=3.0.0

@@ -1,0 +1,9 @@
+# TTS播报请求
+std_msgs/Header header
+string text
+uint8 PRIORITY_NORMAL=0
+uint8 PRIORITY_URGENT=1
+uint8 SOURCE_AUTO=0
+uint8 SOURCE_VOICE_QUERY=1
+uint8 priority
+uint8 source
