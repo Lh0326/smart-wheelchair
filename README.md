@@ -557,7 +557,7 @@ source source_env.sh # WS_ROOT/MODELS_ROOT/ROS 环境一键加载
 | sherpa-onnx KWS zipformer zh-en 3M | 唤醒词 | ~39 MB | `models/voice/kws/` |
 | sherpa-onnx streaming zipformer zh INT8 | 流式 ASR | ~161 MB | `models/voice/asr/` |
 | kokoro INT8 multi-lang v1.1 | TTS | ~519 MB | `models/voice/tts/` |
-| EEG SVM（专注度二分类） | 脑控 | ~3 MB | `models/eeg/` |
+| EEG SVM（专注度二分类，另含咬牙检测 SVM） | 脑控 | ~0.2 MB | 已随仓库内置 `src/wheelchair_app/wheelchair_app/braincontrol/models/` |
 
 ```bash
 pip install -U huggingface_hub
@@ -574,7 +574,7 @@ huggingface-cli download lh527/smart-wheelchair --local-dir models/ --include "m
 
 权重就位前，启动脚本会给出明确的缺失提示。
 
-EEG 专注度模型的训练评估产物（5 折交叉验证报告：准确率 95.97%、AUC 0.990、混淆矩阵、每折指标）随权重一同托管于 `models/eeg/training_report_624train.json`，脑控一章引用的全部指标均出自该文件。
+EEG 专注度/咬牙 SVM 模型已随仓库内置（体积仅 0.2 MB），克隆即用；其训练评估产物（5 折交叉验证报告：准确率 95.97%、AUC 0.990、混淆矩阵、每折指标）托管于 HF 仓库 `models/eeg/training_report_624train.json`，脑控一章引用的全部指标均出自该文件。
 
 ---
 
