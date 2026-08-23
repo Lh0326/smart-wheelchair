@@ -10,7 +10,7 @@
     delay: 3.0
 
     # 磁偏角（昆明约 -1.5° = -0.026 rad）
-    # JY901 输出磁北方位，需修正到真北（与 EC20 GNSS 一致）
+    # HWT906P 输出磁北方位，需修正到真北（与 EC20 GNSS 一致）
     # Gemini 335L 时代无磁力计，此值为 0；JY901 接入后改为 -0.026
     magnetic_declination_radians: -0.026
 

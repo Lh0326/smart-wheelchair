@@ -91,7 +91,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'imu_serial_port',
             default_value='/dev/ttyIMU',
-            description='HWT906P/JY901 IMU 串口设备路径（udev 别名、by-path 或 /dev/ttyUSBx）',
+            description='HWT906P/HWT906P IMU 串口设备路径（udev 别名、by-path 或 /dev/ttyUSBx）',
         ),
         DeclareLaunchArgument(
             'n10p_serial_port',

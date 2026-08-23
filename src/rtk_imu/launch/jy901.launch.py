@@ -1,4 +1,4 @@
-"""JY901 IMU 单节点启动。
+"""HWT906P IMU 单节点启动。
 
 用法：
     ros2 launch rtk_imu jy901.launch.py

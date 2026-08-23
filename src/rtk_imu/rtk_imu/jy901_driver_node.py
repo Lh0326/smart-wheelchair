@@ -1,4 +1,4 @@
-"""JY901 IMU 驱动主节点。
+"""HWT906P IMU 驱动主节点。
 
 数据流：
     /dev/ttyIMU (USB 串口)
@@ -89,7 +89,7 @@ class Jy901DriverNode(Node):
         self._create_debug_timer()
 
         self.get_logger().info(
-            f"JY901 driver 启动：port={self._port}, baud={self._baud}, "
+            f"HWT906P driver 启动：port={self._port}, baud={self._baud}, "
             f"frame_id={self._frame_id}, parent={self._parent_frame}"
         )
         self.get_logger().info(

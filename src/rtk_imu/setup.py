@@ -20,7 +20,7 @@ setup(
     zip_safe=True,
     maintainer='BrainControl Developer',
     maintainer_email='dev@braincontrol.local',
-    description='JY901 IMU 驱动（维特标准协议）',
+    description='HWT906P IMU 驱动（维特标准协议）',
     license='MIT',
     entry_points={
         'console_scripts': [

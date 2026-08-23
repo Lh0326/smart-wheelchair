@@ -10,7 +10,7 @@ export WS_ROOT
 MODELS_ROOT="${MODELS_ROOT:-$WS_ROOT/models}"
 export MODELS_ROOT
 
-# JY901 IMU 集成测试：6 步验证
+# HWT906P IMU 集成测试：6 步验证
 # 用法：./run_integration_test.sh
 
 set -e

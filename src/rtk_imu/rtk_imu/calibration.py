@@ -1,4 +1,4 @@
-"""JY901 启动静态 bias 校准。
+"""HWT906P 启动静态 bias 校准。
 
 启动时收集 duration_sec 秒静态数据，计算陀螺 bias。
 校准完成后 apply_to_gyro() 减去 bias。
@@ -17,7 +17,7 @@ from rtk_imu.packet_parser import PacketResult
 from rtk_imu.jy901_protocol import REG_GYRO, REG_ACC, REG_ANGLE, REG_MAG
 
 MIN_SAMPLES = 10  # 最少样本数（避免单包完成）
-DEFAULT_SAMPLE_RATE_HZ = 100  # JY901 默认输出速率
+DEFAULT_SAMPLE_RATE_HZ = 100  # HWT906P 默认输出速率
 
 
 class BiasCalibrator:

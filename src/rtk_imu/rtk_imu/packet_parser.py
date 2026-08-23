@@ -1,4 +1,4 @@
-"""JY901 字节流状态机解析器。
+"""HWT906P 字节流状态机解析器。
 
 把串口读到的字节流喂入 feed()，吐出 PacketResult 列表。
 每个 PacketResult 包含 reg + 对应字段（其他字段为 None）。

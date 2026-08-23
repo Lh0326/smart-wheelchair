@@ -1,6 +1,6 @@
 """ROS 消息装配：PacketResult → sensor_msgs/Imu, MagneticField, std_msgs/Float64。
 
-Euler 角约定（维特 JY901 输出，ROS REP-103 ENU）：
+Euler 角约定（维特 HWT906P 输出，ROS REP-103 ENU）：
     roll  = 绕 X 轴
     pitch = 绕 Y 轴
     yaw   = 绕 Z 轴（垂直）

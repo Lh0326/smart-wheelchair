@@ -1,4 +1,4 @@
-"""JY901 维特标准协议常量、校验和、字段缩放。
+"""HWT906P 维特标准协议常量、校验和、字段缩放。
 
 参考：维特官方 WitStandardProtocol_JY901 示例(wit_normal_ros.py)
 协议文档：https://wit-motion.yuque.com/wumwnr/ltst03/ucpd40hsgx3ymywv
