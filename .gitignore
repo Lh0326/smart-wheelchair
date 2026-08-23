@@ -6,6 +6,8 @@ __pycache__/
 *.pyc
 .pytest_cache/
 models/
+!src/wheelchair_app/wheelchair_app/braincontrol/models/
+!src/wheelchair_app/wheelchair_app/braincontrol/models/*
 third_party/teb_ws_install/
 third_party/lidar_n10p_install/
 .env
