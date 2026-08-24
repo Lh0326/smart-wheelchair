@@ -88,7 +88,7 @@
 
 | 节点名 | 所属包 | 职责描述 |
 |--------|--------|----------|
-| n10p_python_driver | rtk_perception | 驱动镝数N10P激光雷达，发布原始扫描数据 |
+| n10p_python_driver | rtk_perception | 驱动镭神N10P激光雷达，发布原始扫描数据 |
 | ldlidar_publisher | ldlidar | 驱动乐动LD14P激光雷达，发布原始扫描数据 |
 | orbbec_camera | orbbec_camera | 驱动Orbbec Gemini 330深度相机，发布彩色和深度图像 |
 | camera_detect_node | rtk_perception | 运行YOLO目标检测，发布边界框和类别 |
@@ -313,7 +313,7 @@ EC20F单点GPS在开阔环境下定位精度约3-5米，多径效应下可达10�
 <p align="center">图12　自主导航前端(有导航线+RViz)</p>
 
 
-启动导航后的前端效果如图12所示：地图上出现规划路径与目标点标记（APPROACHING 阶段以红色目标点指示最近路径接入点，进入 ON_PATH 后锁定前方拐角），右侧 RViz 面板同步显示轮椅基于 TEB 导航算法的局部路径规划情况——最新前端将 Web 地图与 RViz 融合为同屏双视图。
+启动导航后的前端效果如图12所示：地图上出现规划路径与目标点标记（APPROACHING 阶段以红色目标点指示最近路径接入点，进入 ON_PATH 后锁定前方拐角），右侧 RViz 面板同步显示轮椅基于 TEB 导航算法的局部路径规划情况。
 
 ### 定位：EC20F单点GPS与IMU融合
 
@@ -487,7 +487,7 @@ KWS模型使用zipformer-zh-en 3M INT8版本，CPU常驻运行，占用约3% CPU
 | 主控 | Intel Core Ultra 5 225U（DK2500 单板，2×8GB DDR5，NPU + 4 Xe 核 iGPU） |
 | 车辆 IMU | 维特 HWT906P（WitStandardProtocol 串口协议） |
 | 头部 IMU | ESP32-S3 + ICM20948V2（串口 CSV/JSON 自适应） |
-| 激光雷达 ×2 | 镝数 N10P（自研 Python 驱动，CW 方向反转）+ 乐动 LD14P（官方 Python 驱动） |
+| 激光雷达 ×2 | 镭神 N10P（自研 Python 驱动，CW 方向反转）+ 乐动 LD14P（官方 Python 驱动） |
 | 深度相机 | Orbbec Gemini 330 系列（depthimage_to_laserscan 转第三路激光） |
 | GNSS | 移远 EC20F（4G dongle，AT + NMEA 双串口） |
 | EEG 采集 | ADS1299 八通道（前额八电极全用，导电膏佩戴）+ 自制脑控帽 |
@@ -498,7 +498,7 @@ KWS模型使用zipformer-zh-en 3M INT8版本，CPU常驻运行，占用约3% CPU
 | 主控 | Intel Core Ultra 5 225U（DK2500 单板，2×8GB DDR5，NPU+4 Xe 核 iGPU） | 部署目标平台 |
 | 车辆 IMU | 维特 HWT906P（WitStandardProtocol 11 字节协议；驱动文件沿用 jy901 命名） |
 | 头部 IMU | ESP32-S3 + ICM20948V2（串口 CSV/JSON 自适应） |
-| 激光雷达 ×2 | 镝数 N10P（自研 Python 驱动，CW 方向反转）+ 乐动 LD14P（ldlidar 官方 Python 驱动） | `scripts/n10p_python_driver.py`、launch 中 ldlidar 段 |
+| 激光雷达 ×2 | 镭神 N10P（自研 Python 驱动，CW 方向反转）+ 乐动 LD14P（ldlidar 官方 Python 驱动） | `scripts/n10p_python_driver.py`、launch 中 ldlidar 段 |
 | 深度相机 | Orbbec Gemini 330 系列（depthimage_to_laserscan 转第三路激光） | launch `gemini_330_series` |
 | GNSS | 移远 EC20F（4G dongle，AT + NMEA 双串口） |
 | EEG 采集 | ADS1299 八通道（前额八电极全用，导电膏佩戴）+ 自制脑控帽 |
