@@ -42,9 +42,11 @@ vfh_avoidance_node:
 
 safety_chain_node:
   ros__parameters:
-    input_scan_topic: "/scan_fused"
-    emergency_stop_distance: 0.55
-    slowdown_distance: 1.5
-    slowdown_factor: 0.35
+    # 独立读取 N10P 扫描，绕过三路融合和 Nav2 costmap。
+    # /scan 已经过机身反射屏蔽；直接订阅未屏蔽的 /scan_n10p_raw 会误判车体。
+    input_scan_topic: "/scan"
+    emergency_stop_distance: 0.3
+    slowdown_distance: 1.0
+    slowdown_factor: 0.3
     front_fov_half_deg: 40.0
     scan_timeout_sec: 0.5

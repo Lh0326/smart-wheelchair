@@ -1,12 +1,11 @@
-"""M4 感知与避障：一键启动 robot_state_publisher + 5 个感知节点 + RViz。
+"""M4 感知与避障：一键启动 robot_state_publisher + 4 个功能节点 + RViz。
 
 启动项：
   - robot_state_publisher：发布 /robot_description 与静态 TF
-  - fusion_scan_node     ：/scan + /scan_ld14p -> /scan_fused
-  - curb_detector_node   ：/scan_fused -> /curb_left_marker, /curb_right_marker, /curb_polygon
-  - target_heading_node  ：订阅目标点 -> /target_heading
-  - vfh_avoidance_node   ：/scan_fused + /target_heading -> /cmd_vel, /vfh_histogram, /vfh_candidate
-  - safety_chain_node    ：/scan_fused + /cmd_vel -> /cmd_vel_safe
+  - curb_detector_node   ：道路边缘检测
+  - path_to_baselink_node：路径坐标转换
+  - vfh_avoidance_node   ：局部避障 -> /cmd_vel
+  - safety_chain_node    ：/scan + /cmd_vel -> /cmd_vel_safe
   - rviz2                ：加载 perception.rviz
 """
 import os
