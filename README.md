@@ -1,654 +1,178 @@
-# Smart Wheelchair — 多模态自主导航轮椅上位机系统
+# 心语智行 · Smart Wheelchair
 
-> MindVoice Smart Wheelchair: brain-controlled, voice-interactive, self-navigating wheelchair software platform — three heterogeneous input modalities, one unified safety execution layer.
->
-> 2026 英特尔杯参赛作品 ｜ ROS 2 Humble + PyQt5 + OpenVINO ｜ 运行于 Intel Core Ultra 5 DK2500 单板
+多模态自主导航轮椅全栈系统，2026 电赛英特尔杯 AI 专题作品。项目以 Intel Core Ultra DK2500 为端侧主机，在 ROS 2 Humble 上将脑控、离线语音与地图导航接入统一的底盘执行入口，并通过 PyQt5 提供三 Tab 交互界面。
 
-![ROS 2](https://img.shields.io/badge/ROS%202-Humble-22314E)
-![Python](https://img.shields.io/badge/Python-3.10-blue)
-![OpenVINO](https://img.shields.io/badge/OpenVINO-INT8-6B57FF)
-![Platform](https://img.shields.io/badge/Platform-DK2500-0071C5)
+本仓库收录上位机、导航、感知、交互与端侧推理源码。底盘电控固件由独立仓库维护，见[电控层与项目边界](#电控层与项目边界)。
 
----
+| 项目组成 | 当前实现 |
+| --- | --- |
+| 交互入口 | 自主导航、小智陪伴、脑电控制三个 Tab |
+| 核心软件 | 16 个核心 ROS 2 功能节点；完整启动还包含驱动、TF、RViz 等辅助进程 |
+| 导航 | 离线 OSM 路网全局规划、Nav2 与 TEB 局部规划 |
+| 端侧推理 | KWS、流式 ASR、TTS 与 YOLO，运行时不依赖云端服务 |
+| 验证记录 | 99 项单元测试与 7 项振荡测试，合计 106 项自动化检查通过 |
 
 ## 目录
 
-- [项目定位](#项目定位)
-- [实物展示](#实物展示)
-- [系统概览与分层架构](#系统概览与分层架构)
-- [脑控链路](#脑控链路)
-- [离线语音链路](#离线语音链路)
-- [导航子系统](#导航子系统)
-- [安全体系](#安全体系)
-- [端侧AI部署](#端侧ai部署)
-- [硬件清单](#硬件清单)
-- [快速开始](#快速开始)
-- [模型权重下载](#模型权重下载)
-- [集成测试](#集成测试)
-- [电控层说明](#电控层说明)
-- [目录结构](#目录结构)
-- [已知局限与后续工作](#已知局限与后续工作)
-- [License](#license)
+- [实物与界面](#实物与界面)
+- [系统架构](#系统架构)
+- [安全与失效处理](#安全与失效处理)
+- [导航与脑控](#导航与脑控)
+- [离线语音与视觉](#离线语音与视觉)
+- [部署与验证](#部署与验证)
+- [代码导航](#代码导航)
+- [电控层与项目边界](#电控层与项目边界)
 
----
-
-## 项目定位
-
-这是一套面向残障人群的多模态自主导航轮椅上位机软件系统。针对重度运动障碍用户"想动不能动、想说说不清、想出门出不去"的现实困境，系统提供三种互补的控制与交互模态：脑电控制（想）、语音陪伴（说）、自主导航（行）。
-
-工程上的核心命题是：三条异构输入链路的可靠性、实时性、故障模式完全不同，如何在同一辆轮椅上共存而不互相伤害。本系统的答案是分层架构——三条链路全部汇聚到单一安全执行层，由固定优先级仲裁、心跳失效保护与三道安全防线兜底，任何单点故障都不传导至电机。
-
-![图1 统一安全执行管线](docs/images/fig_pipeline.png)
-
-<p align="center">图1　统一安全执行管线</p>
-
-
-三模态输入汇聚到 `chassis_serial_node` 单一执行点：仲裁决定"谁在开车"，心跳失效保护决定"没人开时交给谁"，safety_chain 决定"无论谁开、离障碍 0.3 米必须停"。任何单点故障都被这三道机制截断在电机之前。
-
----
-
-## 实物展示
+## 实物与界面
 
 <p align="center">
-<img src="docs/images/photo_front.png" width="45%"/>
-<img src="docs/images/photo_back.png" width="45%"/>
+  <img src="docs/images/photo_front.png" alt="轮椅正面实物" width="29%">
+  <img src="docs/images/photo_eeg_cap.png" alt="自制前额脑电采集帽" width="29%">
+  <img src="docs/images/photo_back.png" alt="轮椅背面实物" width="29%">
 </p>
-<p align="center">图2　实物正面（左）与图3　实物背面（右）</p>
-
-自制前额脑电采集帽（ADS1299 八通道，前额八电极全用，佩戴时配合导电膏）：
-
-![图4 自制脑电采集帽](docs/images/photo_eeg_cap.png)
-
-<p align="center">图4　自制脑电采集帽</p>
-
-
----
-
-## 系统概览与分层架构
-
-本系统是多模态自主导航轮椅的上位机软件平台，2026年英特尔杯参赛作品。系统接收三条独立输入链路——脑电信号、语音指令和地图导航指令——通过分层仲裁机制汇聚到单一安全执行层，最终通过串口协议控制底盘运动。核心设计主线是"三模态输入、单一安全执行"：脑控提供自由操控能力，语音提供自然交互体验，自主导航提供点到点路径规划，三者互斥切换且共享统一安全边界。
-
-![图5 分层架构](docs/images/fig_layered_arch.png)
-
-<p align="center">图5　分层架构</p>
-
-
-图1展示了系统的四层架构。硬件抽象层直接对接传感器和执行器，感知层融合多路数据并输出统一障碍物表示，决策层运行路径规划和行为仲裁，应用层提供人机交互界面。关键洞察在于：这种分层不是简单的模块堆叠，而是为了解决异构输入模式之间的本质冲突。脑控信号是用户直接的运动意图，自由且实时；自主导航是系统计算出的受约束路径，必须考虑避障和平滑性。如果允许两者直接竞争底盘控制权，会产生不安全的行为叠加。因此必须有一个明确的仲裁层，根据上下文决定谁拥有执行权。
-
-![图6 系统总体架构](docs/images/fig_sys_arch.png)
-
-<p align="center">图6　系统总体架构</p>
-
-
-图2展示了完整的系统拓扑。中心是ROS2通信总线，左侧是三模态输入源，右侧是执行机构和反馈回路。该图清晰呈现了系统的"漏斗"结构：多个输入源逐层收敛，最终通过单一的串口连接送达底盘。图中的箭头方向也说明了信息流向：自下而上的传感器数据汇聚成环境认知，自上而下的决策意图逐步细化为执行指令。特别值得注意的是图中标注的"心跳失效保护"和"三道安全防线"，这是整个架构的安全冗余设计，在安全体系一章详细阐述。
-
-### 核心节点清单
-
-系统由16个ROS2节点协同工作，每个节点承担单一职责并通过DDS总线通信。下表列出了所有节点及其所属包和核心功能：
-
-| 节点名 | 所属包 | 职责描述 |
-|--------|--------|----------|
-| n10p_python_driver | rtk_perception | 驱动镭神N10P激光雷达，发布原始扫描数据 |
-| ldlidar_publisher | ldlidar | 驱动乐动LD14P激光雷达，发布原始扫描数据 |
-| orbbec_camera | orbbec_camera | 驱动Orbbec Gemini 330深度相机，发布彩色和深度图像 |
-| camera_detect_node | rtk_perception | 运行YOLO目标检测，发布边界框和类别 |
-| depthimage_to_laserscan_gemini | depthimage_to_laserscan | 将深度图像转换为2D激光扫描数据 |
-| fusion_scan_node | rtk_perception | 融合三路激光扫描数据，供RViz显示 |
-| networkx_planner | rtk_planner | 基于OSM路网计算全局路径，发布/rtk_global_plan |
-| path_to_baselink_node | rtk_perception | 将全局路径转换到机器人坐标系，发布/rtk_nav_path |
-| controller_server | nav2_controller | 运行TEB局部规划器，发布/cmd_vel |
-| path_feeder_node | rtk_perception | 桥接路径规划与Nav2，管理导航生命周期 |
-| chassis_serial_node | rtk_perception | 仲裁多路速度指令，通过串口驱动底盘 |
-| voice_node | wheelchair_app | 运行KWS和ASR，发布语音识别结果 |
-| tts_node | ladar_ai | 执行文本转语音，通过扬声器播报 |
-| safety_chain_node | rtk_perception | 监控指令健康状态，实现心跳失效保护 |
-| teb_debug_node | rtk_perception | 发布TEB调试可视化标记 |
-| rviz2 | rviz2_common | 3D可视化界面 |
-
-这些节点通过主 launch 文件统一启动，支持实物和仿真两种运行模式。实物模式下启用chassis_serial_node和真实IMU/GNSS，仿真模式下使用sim_chassis_node提供虚拟里程计。
-
-### 分层仲裁的必要性
-
-为什么必须将异构输入汇聚到单一执行层？脑控模式和导航模式的本质差异决定了这一点。脑控模式下，用户通过想象运动直接产生前进/后退/转向指令，这是开环控制，用户自己负责避障和路径规划。自主导航模式下，系统基于全局地图和局部障碍物计算最优轨迹，这是闭环控制，必须严格遵循安全约束。两种模式对"安全"的定义不同：脑控用户可能为了快速接近目标而接受近距离通过障碍物，导航系统则会保持更大的安全距离。
-
-如果允许两种模式同时生效，底盘会收到矛盾指令。例如用户脑控意图是"右转绕行"，但TEB规划器基于前方障碍物计算出"左转避障"。此时底盘执行哪个？更危险的是，用户可能误认为系统会自动避障，而系统可能误认为用户会手动避障，形成责任真空。因此系统设计为互斥模式切换：脑控激活时，导航暂停；导航执行时，脑控仅作为辅助输入。这种设计通过`/nav_control_active`和`/eeg_mode_active`两个心跳信号实现，在安全体系一章详细阐述。
-
-### PyQt5主程序与ROS2节点的关系
-
-系统的人机界面通过PyQt5主程序`wheelchair_app`实现，主窗口包含三个Tab页：自主导航、小智陪伴和脑电控制。每个Tab对应的Web界面通过`rtk_frontend`包的HTTP服务提供。值得注意的是，PyQt5程序本身不是控制者，而是ROS2总线的客户端。它订阅节点状态发布指令，但从不直接控制底盘。
-
-例如，当用户在自主导航Tab点击地图设置终点时，PyQt5程序会发布`/goal_pose`消息到`networkx_planner`节点，由该节点计算全局路径。路径规划完成后，`path_feeder_node`接管执行，向`controller_server`发送FollowPath action。整个流程中，PyQt5仅作为用户意图的输入接口，真正的决策和执行完全由ROS2节点完成。这种解耦设计使得系统可以在无GUI的情况下运行（例如通过命令行发布goal），也便于未来扩展其他交互方式。
-
-### 三条输入链路概述
-
-系统设计三条输入链路对应三种典型使用场景。脑控链路服务于运动功能受限的用户，通过脑电信号实现"意念操控"，让用户恢复基本移动能力。语音链路提供自然语言交互，用户可以询问"还有多远"或"前面是什么"，系统通过离线语音识别和合成技术提供即时反馈。导航链路实现自主移动能力，用户只需点击地图目的地，系统自动规划路径并避障到达。
-
-三条链路的技术选型反映了各自的性能需求。脑控链路要求极低延迟，从脑电采集到底盘响应控制在50ms内，因此采用高频实时信号处理和简化的分类模型。语音链路要求离线运行，因此采用OpenVINO INT8量化的KWS和ASR模型，配合本地TTS引擎。导航链路要求鲁棒性，因此采用TEB局部规划器配合三路激光融合，并设计了5m/4m滞回切换机制防止局部震荡。尽管技术路线不同，三条链路最终都汇聚到`chassis_serial_node`的统一仲裁接口，确保安全边界不被突破。
-
-本章建立了系统的整体框架。接下来的章节将深入每条链路的实现细节，首先从脑控链路开始——这是系统中最具技术挑战性的部分，也是体现"以人为本"设计理念的核心功能。
-
----
-
-## 脑控链路
-
-作为三条输入链路中的第一条，脑控链路本章深入解析其完整数据流与核心算法。脑控链路实现用户通过脑电信号与头部姿态直接控制轮椅运动，是整个系统中技术密集度最高的输入模态。
-
-### 完整链路架构
-
-脑控链路采用多模态融合方案，数据流经八个关键环节：
-
-1. EEG 采集：ADS1299 八通道采集前端以 500Hz 采样，经 1Mbps 串口传输至主机；八通道信号全部参与特征计算（TBR 与全局相对功率直接使用全部八通道，Alpha 抑制与 Hjorth 参数聚焦 F3/FzL/FzR/F4 四个前额核心区）。
-
-2. 特征提取：实时计算2秒滑动窗口内的30维核心特征，包括TBR（Theta/Beta Ratio）、Alpha抑制、Fm-θ功率、Hjorth参数及频带不对称性指数。
-
-3. SVM专注度二分类：使用预训练的RBF SVM模型（C=1.0, gamma='scale'）输出专注度概率p_focus与状态（focused/neutral/relaxed），5折交叉验证平均精度达95.97%。
-
-4. 头部IMU融合：ESP32-S3+ICM20948V2模块以115200波特率输出四元数姿态，经`HeadPoseCalculator.quaternion_to_tilt`转为pitch/roll欧拉角，通过`ImuHandler.update`进行圆形magnitude滞回判定（ENTER=12°, EXIT=6°），输出TiltDirection方向指令。
-
-5. 咬牙检测确认：`ClenchDetector`独立监控同一EEG流，检测咬牙动作产生的EMG特征，rising edge触发LOCKED↔ACTIVE状态切换。
-
-6. 50ms控制状态机：`ControlStateMachine`以固定20Hz循环，根据focus_state、toggle事件与tilt方向输出MotionCommand，内置三道防误触闸门：FOCUS_HOLD_MS=2000ms（DISABLED→ACTIVE持续清醒）、FROWN_COOLDOWN_MS=1500ms（toggle冷却）、FOCUS_FREEZE_MS=1500ms（EEG冻结防污染）。
-
-7. 运动指令发布：`MotionCommander.update`将MotionCommand枚举映射为geometry_msgs/Twist，发布到/cmd_vel_eeg话题（FORWARD: linear.x=+0.5, LEFT: angular.z=+0.5）。
-
-8. 底盘执行：DJI A板STM32接收串口指令闭环控制电机。
-
-### 专注度识别算法
-
-
-
-图6展示了训练数据集中五频带功率的分布特征与专注度判别关键指标。delta波（1-4Hz）功率在瞌睡状态显著升高，beta波（13-30Hz）在专注状态下占主导，theta/beta ratio（TBR）与专注度呈负相关。系统采用30维简化特征空间，移除了原125维中的EMG相关特征以避免反模式学习。
-
-![图7 EEG专注度混淆矩阵](docs/images/fig_eeg_confusion.png)
-
-<p align="center">图7　EEG专注度混淆矩阵</p>
-
-
-图7是专注度二分类模型留存的训练评估产物：基于5832个有效窗口（24试次）、5折交叉验证，SVM分类器达到 95.97% CV 精度、AUC 0.990。混淆矩阵显示 focused/relaxed 两类各有 2779/2818 例正确预测，交叉误判仅 137/98 例——这一精度水平是在前额电极配合导电膏的真实佩戴条件下取得的，是脑控链路可用性的直接证据。每折精度与完整指标随权重托管于 `models/eeg/training_report_624train.json`。
-
-### 工程设计细节
-
-特征空间的通道组织：八通道信号全部进入特征计算——TBR（theta/beta 比）逐通道计算，全局相对功率取八通道均值；Alpha 抑制与 Hjorth 参数则聚焦 F3/FzL/FzR/F4 四个位于 DLPFC（背外侧前额叶）与 ACC（前扣带）投射区的核心电极，这两个区域是专注度神经生理学的主要信号来源。这种"全局统计 + 核心区聚焦"的组合在降低特征维度的同时保留了空间信息。
-
-头姿校准机制：用户首次启动时需点击"设为正前方"按钮触发`ImuHandler.reset`。系统采集20帧IMU数据计算欧拉域基线均值（pitch_0, roll_0），后续每帧通过`update`方法减去基线得到相对姿态。这确保用户初始佩戴角度不影响控制精度，且规避了四元数在±180°附近的跳变问题。
-
-航向补偿：虽然ICM20948V2输出完整姿态，但系统仅使用pitch/roll二维倾斜。yaw航向角被刻意忽略，原因在于脑控主要用于短距离精细调整（如室内导航的最后1米），过度旋转可能引入累积误差。
-
-### 用户界面
-
-![图8 脑控Tab界面](docs/images/ui_braincontrol.png)
-
-<p align="center">图8　脑控Tab界面</p>
-
-
-脑控Tab采用三栏布局。左栏实时显示专注度分数与频带功率，中栏matplotlib绘制8通道波形（500Hz×3秒缓冲区），右栏TiltIndicator罗盘可视化头部姿态。顶部横幅通过颜色编码立即反馈当前状态：绿色"前进"、橙色"主动锁定"、红色"疲劳锁定"。界面设计遵循"信息密度适中、关键状态一目了然"原则。
-
-自制脑电帽采用前额八电极布局，配合参考电极与接地电极，佩戴时使用导电膏保证接触质量。ESP32-C3 WIFI模块集成在帽内，通过1Mbps串口连接ADS1299前端芯片。帽体采用3D打印骨架与魔术带调节，适配不同头型用户。选择前额位置而非国际10-20系统的顶叶/枕叶区域，是出于日常生活场景佩戴便利性的考量。
-
-### 状态机与安全机制
-
-ControlStateMachine实现三状态转换逻辑：
-- DISABLED：检测到neutral/relaxed时进入，输出STOP，需持续focused状态2秒才能恢复（防疲劳误操作）
-- LOCKED：初始状态，专注但无头姿输入时保持，需咬牙rising edge触发ACTIVE
-- ACTIVE：专注+头姿有效时运动输出，再次咬牙切换回LOCKED
-
-三道闸门时间参数经过实测调优：2秒清醒闸门过滤瞬态分心，1.5秒toggle冷却防止重复触发，1.5秒EEG冻结避免咬牙EMG污染专注度判断。
-
-脑控链路的实时性保证来自三个独立定时器：50ms控制环驱动状态机与/cmd_vel_eeg发布，500ms专注度计算保证SVM推理不阻塞控制路径，150ms咬牙检测提供及时toggle响应。这种时间解耦设计确保即使matplotlib绘图卡顿，底盘控制仍以20Hz稳定运行。
-
-下一条输入链路是离线语音。
-
----
-
-## 离线语音链路
-
-脑控解决"想动"，语音解决"想说"。第二条输入链路是全离线语音陪伴系统。该链路定位为自然语言交互通道，与脑控、感知显示共同构成陪伴模式的三个信息面板。
-
-### 用户界面：语音陪伴模式
-
-![图9 语音陪伴Tab界面](docs/images/ui_companion.png)
-
-<p align="center">图9　语音陪伴Tab界面</p>
-
-
-图9展示了智慧轮椅的语音陪伴模式Web界面，呈现三合一交互视图：左侧为YOLO目标检测实时结果（行人/车辆/红绿灯），右上部分为点云激光雷达环境感知，右下为语音交互状态面板。该界面体现"感知-决策-反馈"闭环：用户说"前方有什么"，系统通过YOLO检测播报"零点八米有一个行人"；说"去客厅"，则触发全局路径规划并启动导航播报。语音陪伴模式下的所有推理均在本地完成，界面仅作为状态展示，核心链路完全独立于网络连接。
-
-### 语音链路全解
-
-语音链路采用两级级联架构：唤醒词检测（KWS）→ 流式语音识别（ASR）→ 意图解析（COMMAND_MAP）→ 语音合成播报（TTS）。各环节均部署INT8量化模型，通过OpenVINO推理引擎实现端侧低延迟运行。
-
-### 唤醒词检测（KWS）
-
-KWS模块采用sherpa-onnx Zipformer 3M参数模型，支持中英双语唤醒词"小智你好/小志你好/小吱你好/心语朗读"。该模型常驻CPU运行，参数量3M级、开销轻量。KWS通过关键词得分阈值（keywords_score=1.5, keywords_threshold=0.25）过滤误触发，检测到唤醒词后切换语音引擎状态（State.IDLE→State.RECORDING）并触发TTS反馈"我在，请说命令"。
-
-### 流式语音识别（ASR）
-
-ASR采用流式Zipformer INT8量化模型，替代传统"录完整段再识别"模式。该模型边收音边出字，通过endpoint检测机制（rule1_min_trailing_silence=0.6s）自动识别用户说话结束。实测中流式ASR配合VAD（语音活动检测，）可提前结束录音窗口，避免用户说完后等待固定时长。ASR识别文本经过常见误识别修正（如"方方"→"前方"，）后送入意图解析。
-
-### 意图解析
-
-语音指令通过COMMAND_MAP进行语义到动作的映射。支持12类指令：
-
-| 指令类型 | 关键词示例 | 映射动作 |
-|---------|-----------|---------|
-| 导航指令 | 去客厅/去卧室/去医院/回家 | NAV_* |
-| 安全指令 | 停止/紧急停止/等一下 | STOP/EMERGENCY_STOP |
-| 速度控制 | 加速/减速/快点/慢点 | SPEED_UP/SPEED_DOWN |
-| 状态查询 | 电量多少/我在哪里/前方有什么 | QUERY_* |
-| 确认取消 | 确认/好的/取消/帮助 | CONFIRM/CANCEL/HELP |
-
-语音指令不直接驱动底盘。识别结果以JSON格式发布到/voice_command话题，Web前端（companion/nav页面，经rosbridge订阅）将其呈现为界面动作，导航类指令由前端经/goal_gps话题触发全局规划（与地图点选目标同通道）。这确保语音交互仅作为"意图输入层"，不产生任何绕过统一仲裁的控制路径。
-
-### 语音合成（TTS）
-
-TTS采用双引擎架构：主引擎Piper VITS zh_CN-huayan-medium提供~130ms实时响应，回退引擎Kokoro INT8多语言模型提供更高音质。两引擎均通过句级流式合成（_segment_and_stream，）实现首段音频生成完即播放，后续段并行合成，减少用户感知延迟。音频后处理包括低通滤波（12kHz截止）、高质量重采样（scipy spline插值）、淡入淡出（消除爆音），确保INT8量化后的听感自然。
-
-### 全离线设计
-
-语音链路必须全离线运行，原因有三：其一，户外场景网络连接不可靠（地下室/隧道/偏远区域），云API会导致功能完全失效；其二，本地推理延迟可控制在300ms以内（唤醒→识别→播报全程），而云端API往返延迟通常超1s，严重影响交互流畅度；其三，语音数据可能包含用户隐私信息（家庭住址/日常对话），离线处理避免上传云端。
-
-当前实现采用sherpa-onnx框架的CPU后端，未启用OpenVINO GPU加速（sherpa-onnx未编译对应后端）。模型存储于models/voice/{kws,asr,tts}目录，各模型文件托管于Hugging Face仓库供离线下载。
-
-### 语音与控制的边界
-
-语音指令通过ROS2话题发布到/voice_command，由Web前端订阅呈现，导航类指令经/goal_gps进入规划链路，急停/停止类指令触发导航目标取消（与/clear_goal联动）。语音链路绝不直接发布/cmd_vel或控制电机——底盘唯一的速度来源是chassis_serial_node的统一仲裁（EEG接管与Nav2输出二选一）。这一设计确保语音交互仅作为"意图输入层"，不破坏安全体系（安全体系一章详述）的三道防线与心跳失效保护。
-
-特殊指令"前方有什么"触发YOLO目标检测查询：语音节点订阅/detections话题，获取最近1.5秒内的检测数据（置信度≥0.5），播报"零点八米有一个行人"等中文描述。该功能体现语音与视觉感知的融合，非直接控制路径。
-
-### 导航播报（voice_announce_node）
-
-voice_announce_node（launch文件位于rtk_perception）提供Turn-by-Turn导航语音播报，订阅/global_plan路径规划结果和/fix定位数据。播报逻辑基于OSM路网（region.graphml）反查道路名称，实现三级播报：
-
-- 路径概览：规划成功后播报"路径规划完毕，全程150米，预计用时不到1分钟，途经科技路、沿途经过2段小路"（build_overview_text，）
-- 拐弯提醒：路名变化前5米播报"前方5米进入XX路"（turn_ahead_meters=5.0，）
-- 到达通知：距离终点3米内播报"已到达终点，导航结束"（arrival_meters=3.0，）
-- 偏离警告：连续3秒偏离路径超25米播报"已偏离路径，请重新规划"（offroute_meters=25.0，）
-
-播报文本通过/tts_request话题发送到tts_node，调用Kokoro/Piper引擎发声。为避免USB Hub过流保护（OCP），首次播报延迟8秒（announce_delay_sec=3.0 + 首次额外5秒冷启动延迟，），错开chassis电机启动和TEB规划初始化的电流峰值。
-
-### 链路小结
-
-离线语音链路通过KWS→ASR→意图解析→TTS实现自然语言交互，全流程本地推理无网络依赖。语音指令经Web前端转化为界面动作与导航目标，与脑控/手控共享统一安全框架。导航播报节点基于OSM路网提供Turn-by-Turn语音引导，增强用户空间认知。下一章将详细介绍第三条链路——导航子系统，涵盖全局路径规划（NetworkX+OSM）、局部避障（TEB）、EKF定位与GNSS融合。
-
----
-
-## 导航子系统
-
-第三条输入链路是地图导航，本系统在用户选择目的地后执行全局规划与局部避障，将路径转换为底盘可执行的角速度/线速度指令，同时通过多层状态机应对单点GPS的米级噪声。
-
-### 全局规划：离线OSM路网
-
-本系统采用完全离线的路网规划方案，无需互联网连接。预构建的OSM路网存储于data/region.graphml，包含5592个路口节点与12802条路段边。用户在前端地图点击目的地后，networkx_planner_node订阅/fix（当前位置）与/goal_gps（WGS84终点），用osmnx库在本地GraphML图上执行Dijkstra最短路径搜索，发布rtk_msgs/GlobalPlan类型的/global_plan话题。
-
-规划算法将起点与终点投影到最近路段（而非最近路口节点），保留用户实际点击位置作为路径终止点。每3秒用最新GPS位置重算路径，确保轮椅偏离预设路线后自动重新规划。
-
-### 局部规划：从VFH+到TEB的迁移
-
-早期系统采用 VFH+（Vector Field Histogram+）局部避障算法，但在狭窄走廊和掉头场景存在频繁抖振问题。当前版本已迁移至TEB（Timed Elastic Band）局部规划器，由Nav2的controller_server托管。TEB在优化轨迹时同时考虑时间维度与动力学约束，能生成平滑的速度曲线，消除了VFH+在掉头时左右快速摆动的现象。
-
-path_to_baselink_node将全局路径（WGS84坐标）转换为机器人本体坐标系下的局部路径，发布nav_msgs/Path类型的/nav_path话题。由于OSM路径节点间距可能达50-100米，节点之间线性插值至0.5米密度，否则TEB会因路径点过于稀疏而报"trajectory is not feasible"错误。
-
-### 米级GPS噪声对策：滞回状态机
-
-EC20F单点GPS在开阔环境下定位精度约3-5米，多径效应下可达10米以上。若直接以"是否在路径上"切换模式，轮椅会在5米误差边界处反复进入/离开路径，导致朝向剧烈跳变。本系统采用5米触发、4米回切的滞回带设计。
-
-![图10 滞回状态机](docs/images/fig_hysteresis.png)
-
-<p align="center">图10　滞回状态机</p>
-
-
-图10展示了两态滞回逻辑：当轮椅偏离路径超过5米时进入APPROACHING模式（红色目标点），引导用户走到最近路径接入点；当距离小于4米时才回切到ON_PATH模式（蓝色目标点），开始跟踪路径前方拐角。4-5米区间保持当前模式，避免GPS噪声导致的状态震荡。
-
-![图11 自主导航前端(无导航线)](docs/images/ui_nav_1.png)
-
-<p align="center">图11　自主导航前端(无导航线)</p>
-
-
-图11是导航前端（无导航任务时）的整体布局：地图区叠加路网底图，右侧面板实时显示 GPS 定位状态与 IMU 姿态，是系统的定位监视视图；启动导航后的带路径效果见图12。
-
-拐角识别采用角度阈值判定：相邻路径段方向差超过30°时标记为拐角点。ON_PATH模式下，系统不再跟踪终点，而是锁定下一个拐角作为目标，使L形路径先朝下再朝右，避免直接指向终点引发的"窜路"现象。
-
-![图12 自主导航前端(有导航线+RViz)](docs/images/ui_nav_2.png)
-
-<p align="center">图12　自主导航前端(有导航线+RViz)</p>
-
-
-启动导航后的前端效果如图12所示：地图上出现规划路径与目标点标记（APPROACHING 阶段以红色目标点指示最近路径接入点，进入 ON_PATH 后锁定前方拐角），右侧 RViz 面板同步显示轮椅基于 TEB 导航算法的局部路径规划情况。
-
-### 定位：EC20F单点GPS与IMU融合
-
-本系统定位源为移远EC20F 4G模块的GNSS功能，通过双串口分别发送AT指令（/dev/ttyUSB_AT启动GNSS）与接收NMEA报文（/dev/ttyUSB_NMEA输出GGA/RMC）（ec20）。NMEA解析后发布sensor_msgs/NavSatFix到/fix话题（ec20）。
-
-为抑制GPS随机噪声，系统采用robot_localization包的双层EKF架构：navsat_transform_node将/fix与IMU数据对齐，发布/odometry/gps；ekf_node进一步融合IMU加速度/角速度与GPS位置，输出/odometry/filtered。融合过程为定性优化，通过扩展卡尔曼滤波平滑位置抖动，但不写入具体噪声参数值。
-
-航向源为维特 HWT906P IMU，发布 /heading_imu 话题（0-360 度指南针角度）。path_to_baselink_node对该航向信号执行三档自适应滤波：相邻帧差小于0.5°视为噪声完全不响应，0.5°~15°范围低通平滑，超过15°直接采用。源头滤除IMU抖动后，目标航向角自然稳定，无需二次滤波。
-
-### Nav2集成与costmap构建
-
-TEB局部规划器通过Nav2的controller_server生命周期管理，自动创建local_costmap子组件。costmap采用三层障碍源融合：N10P雷达（/scan，后置高位）、LD14P雷达（/scan_ld14p，前置低位）、Gemini深度相机转换的虚拟激光（/scan_gemini，补盲N10P头部遮挡区）。
-
-三路激光数据各自执行机身矩形屏蔽（N10P：前0.81米/后0.30米/左右0.45米；LD14P：前0.23米/后0.87米/左右0.45米；Gemini：前0.81米/后0.30米/左0.71米/右0.20米），过滤轮椅本体反射点云。costmap_periodic_clear节点每2秒清空机器人周围4米范围内的历史障碍残留，解决轮椅移动后自身遮挡导致的障碍"阴影"问题。
-
-path_feeder_node订阅/nav_path，通过Nav2的FollowPath action将路径发送给controller_server执行。为防止同一目的地重复发送导致TEB重置与下位机加速斜坡重新开始，该节点按最终目的地签名去重：只有用户选择新终点时才替换FollowPath goal，路径前缀随轮椅前进裁剪不影响目标签名。
-
-### 小结
-
-导航子系统以离线OSM路网为骨架，通过NetworkX全局规划与TEB局部避障实现从起点到终点的完整路径跟踪。5m/4m滞回带与30°拐角锁定状态机有效抑制了单点GPS米级噪声带来的朝向跳变，EC20F+HWT906P的EKF融合进一步平滑定位抖动。三层激光源costmap为TEB提供实时障碍信息，path_feeder的目的地去重机制保证导航执行的平稳连续。
-
-所有链路的输出最终汇聚于safety_chain_node，该节点作为系统安全守门员，对脑控、语音、导航三条链路的运动指令执行分时仲裁与心跳失效保护——这是下一章"安全体系"的主题。
-
----
-
-## 安全体系
-
-导航一章结束时指出，所有链路输出最终汇聚到安全执行层。但本系统面临一个本质性架构风险：权限越高，故障越致命——脑控链路拥有最高优先级，一旦崩溃无人接管，轮椅将失去所有约束；Nav2自主导航作为基线模式，是最可靠的长期运行基准（语音链路不直接持有底盘控制权，不在此风险序列中）。为解决这一"高权限高风险"困境，本系统设计了心跳失效保护与三道安全防线，形成纵深防御架构。
-
-### 心跳失效保护
-
-固定频率心跳话题是本系统全链路标配设计。以脑控模式为例，`BrainControlTab`持续发布`/eeg_mode_active`话题，底盘节点`chassis_serial_node`每帧校验新鲜度：
-
-```python
-def _check_eeg_mode_fallback(self):
- """3 秒无 /eeg_mode_active 心跳 → fallback 到 Nav2 模式。"""
- if self._eeg_mode and (now - self._latest_eeg_heartbeat_sec) > 3.0:
- self._eeg_mode = False
- self.get_logger.warn("EEG心跳超时，fallback至Nav2模式")
+<p align="center">轮椅正面 · 自制脑电采集帽 · 轮椅背面</p>
+
+<p align="center">
+  <img src="docs/images/ui_nav_1.png" alt="未设置目的地时的自主导航界面" width="47%">
+  <img src="docs/images/ui_nav_2.png" alt="规划路径与 RViz 同屏的自主导航界面" width="47%">
+</p>
+<p align="center">自主导航：待命地图（左）与路径规划、RViz 联合视图（右）</p>
+
+<p align="center">
+  <img src="docs/images/ui_companion.png" alt="小智陪伴界面中的视觉与语音面板" width="47%">
+  <img src="docs/images/ui_braincontrol.png" alt="脑电控制界面的波形与状态反馈" width="47%">
+</p>
+<p align="center">小智陪伴（左）与脑电控制（右）</p>
+
+## 系统架构
+
+脑控输出短时运动意图，语音将识别结果转换为导航目标、停止请求或状态查询，地图导航生成连续速度指令。三条链路各自处理输入，底盘速度则由 [chassis_serial_node](src/rtk_perception/rtk_perception/chassis_serial_node.py) 统一选择并发送。PyQt5 界面通过 ROS 2 与服务节点交换消息，不直接写入电机串口。
+
+```mermaid
+flowchart LR
+    EEG[脑电与头姿] -->|cmd_vel_eeg| CHASSIS[chassis_serial_node]
+    VOICE[离线语音] -->|导航目标| NAV[OSM + Nav2 / TEB]
+    VOICE -->|停止请求| CHASSIS
+    MAP[地图选点] -->|目的地| NAV
+    NAV -->|cmd_vel| SAFETY[safety_chain_node]
+    LIDAR[N10P 扫描] --> SAFETY
+    SAFETY -->|cmd_vel_safe| CHASSIS
+    CHASSIS -->|UART| MOTOR[DJI A 板与电机]
 ```
 
-3秒阈值经过工程验证：脑控算法50ms控制环周期下，3秒≈60帧，足以区分瞬时卡顿与真实崩溃；同时3秒停车距离在常规速度（0.5m/s）下不超过1.5m，属于安全可接受范围。语音链路天然不需要此类心跳——语音指令不持有底盘控制权（经前端进入导航目标链路），无从出现"崩溃后无人接管"。这一设计让高优先级链路成为"可随时被替换的临时独占者"，而非"一旦崩溃就锁死系统"的单点故障源。
+| 输入链路 | 关键数据流 | 与底盘的关系 |
+| --- | --- | --- |
+| 脑控 | ADS1299 EEG、头部 IMU → 状态机 → `/cmd_vel_eeg` | 心跳有效且产生运动指令时临时接管 |
+| 语音 | 麦克风 → KWS → ASR → 意图解析 | 发起导航、停止或状态查询，不直接发布电机速度 |
+| 地图导航 | 地图终点 → OSM 全局路径 → Nav2/TEB → `/cmd_vel_safe` | 在导航门控和指令有效时持续控制 |
 
-![图13 心跳失效保护时序](docs/images/fig_heartbeat.png)
+底盘仲裁顺序为串口启动静默期、强制停车、脑控临时接管、Nav2 导航。导航速度先从 `/cmd_vel` 经过 `safety_chain_node` 形成 `/cmd_vel_safe`；脑控的 `/cmd_vel_eeg` 则由底盘节点单独检查模式、指令时效和优先级。
 
-<p align="center">图13　心跳失效保护时序</p>
+## 安全与失效处理
 
+### 心跳与控制权交还
 
-图13展示了三条控制链路的心跳仲裁逻辑。关键洞察在于：每条链路都有独立心跳计数器，底盘节点采用"最新有效授权"原则——最后收到的心跳决定当前模式。当高优先级链路（如EEG）心跳停止时，系统不会挂起等待，而是立即回退到次优先级（Voice）或基线模式（Nav2）。这从根本上消除了"高权限链路崩溃导致系统失控行走"的风险。
+脑控 Tab 以 1 Hz 发布 `/eeg_mode_active` 心跳。底盘节点检查其新鲜度；超过 3 s 未收到更新，就撤销脑控接管并回到 Nav2 模式。回退表示控制权交还，实际运动仍取决于有效导航目标、定位和速度指令；条件不成立时保持零速。Nav2 指令和脑控指令另有各自的过期归零逻辑。
 
-### 三道安全防线
+### 三层安全约束
 
-三道防线按物理层级递进，每道独立失效不影响整体安全：
+| 层级 | 实现 | 故障响应 |
+| --- | --- | --- |
+| 感知层 | N10P、LD14P、Gemini 扫描分别进入 costmap | 单路观测中断不阻断其他观测源 |
+| 导航执行层 | `safety_chain_node` 以 20 Hz 读取 N10P 扫描并检查 Nav2 指令 | 0.3 m 内急停；扫描或指令过期时发布零速 |
+| 串口与电控层 | 底盘节点统一编码发送，下位机保留看门狗 | 串口通信异常时维持停车状态 |
 
-第一道：感知层多源独立costmap 
-三路雷达（N10P、LD14P、Gemini330转激光）分别通过`scan_min_range_filter`滤除噪声后，由`fusion_scan_node`融合为全局`/scan`。每路雷达的costmap独立计算，任一路失效不会导致全局盲区。主 launch 中三路滤波器并联设计确保了数据解耦。
+N10P 的 `/scan` 已过滤轮椅机身反射点。安全链直接订阅该路扫描，绕开三路融合输出和 Nav2 costmap；扫描与速度指令均按 0.5 s 时效检查。三路扫描仍分别写入 [local_costmap_params.yaml](src/rtk_perception/config/local_costmap_params.yaml)，不依赖融合节点才能完成导航避障。这里的“三路扫描”由两台物理激光雷达和一路 Gemini 深度相机生成的虚拟激光构成。
 
-第二道：执行层safety_chain 20Hz直读创建20Hz定时器直读融合雷达数据，绕过Nav2控制环。安全参数定义在：0.3m内急停、1.0m内减速至0.3x、0.5s指令超时全停。这层保护的本质是"法律底线"——无论上层算法发出什么指令，物理世界障碍物优先级最高。20Hz频率保证单次延迟<50ms，远低于轮椅刹车时间常数。
+脑控速度不经过导航安全链，它由底盘节点的心跳、运动指令超时及优先级逻辑保护。串口看门狗属于下位机固件，未包含在本仓库内。
 
-第三道：串口看门狗静默停车 
-底盘串口采用100Hz ASCII三字段帧，DJI A板STM32内置硬件看门狗。当上位机串口断开或帧率异常时，看门狗超时自动复位电机驱动至零速。这是最底层的物理兜底，不依赖任何软件逻辑。
+## 导航与脑控
 
-![图14 三道安全防线](docs/images/fig_three_defense.png)
+### 离线路网与局部规划
 
-<p align="center">图14　三道安全防线</p>
+[data/region.graphml](data/region.graphml) 是本地 OSM 路网，含 5,592 个节点和 12,802 条边。[networkx_planner_node](src/rtk_planner/rtk_planner/networkx_planner_node.py) 将起终点投影到邻近道路边，在本地图上计算路径；[path_to_baselink_node](src/rtk_perception/rtk_perception/path_to_baselink_node.py) 将路径转换到车体坐标系，再由 [path_feeder_node](src/rtk_perception/rtk_perception/path_feeder_node.py) 交给 Nav2 `FollowPath`。
 
+局部规划从 VFH+ 迁移到 TEB，以降低狭窄通道与掉头时的方向抖振。单点 GNSS 的米级噪声由路径状态机处理：偏离路径超过 5 m 才进入接近路径模式，回到 4 m 内才恢复路径跟踪；拐角锁定避免在转弯处直接朝远处终点切线前进。
 
-图14可视化纵深防御逻辑。关键洞察：每道防线有独立传感器、独立算法、独立执行路径。即使Nav2全链崩溃，safety_chain仍能独立避障；即使ROS2主进程死锁，串口看门狗仍能物理停车。三道防线串联形成"任一环节生效即可避险"的冗余架构。
+![5 m 触发、4 m 回切的路径状态机与拐角锁定](docs/images/fig_hysteresis.png)
 
-### 优先级仲裁表
+### 脑电与头姿控制
 
-底盘节点实时仲裁三条控制链路，优先级从高到低：
+自制采集帽使用 ADS1299 八通道前额 EEG。脑控链路提取专注度特征，结合头部 IMU 的俯仰、侧倾与咬牙确认信号，由 20 Hz 控制状态机发布运动指令。持续专注、咬牙切换冷却与 EEG 冻结窗口用于减少误触发；头姿失联或指令过期时，底盘输出归零。
 
-| 优先级 | 控制源 | 生效条件 | 失效处理 |
-|--------|--------|----------|----------|
-| 0 | 串口静默期 | 串口打开后2秒内 | 强制零速（防下位机自检冲击） |
-| 1 | 强制停止 | `/clear_goal` 触发 | 零速保持至Nav2确认停止 | |
-| 2 | EEG临时接管 | `/eeg_mode_active` 心跳新鲜且 `/cmd_vel_eeg` 有指令 | 3秒无心跳→自动交还Nav2 | |
-| 3 | Nav2导航 | 基线模式，GPS有效 | GPS失效→硬门控停车 | |
+训练评估文件托管在[模型仓库](https://huggingface.co/lh527/smart-wheelchair/tree/main/models/eeg)。下图是专注度模型的离线交叉验证结果，不代表实地载人驾驶准确率。
 
-仲裁在100Hz主循环`_tick`内逐帧执行，注释明确了优先序：串口静默期 > 强制停止 > EEG临时接管 > Nav2。语音指令不进入该仲裁——它经Web前端转化为导航目标或停止请求，从源头就与底盘速度控制解耦。这确保"高权限优先，且高权限不可用时控制权自动回到Nav2基线"。
+![EEG 专注度分类混淆矩阵](docs/images/fig_eeg_confusion.png)
 
-### 106项测试验证
+<details>
+<summary>查看五折交叉验证指标</summary>
 
-2026-06-25完成的自动化验证覆盖了全部安全关键路径（`tests/results/2026-06-25-teb/auto_test_result.txt`）：
+![EEG 五折交叉验证指标](docs/images/fig_eeg_metrics.png)
 
-- 单元测试99项（rtk_perception包）：覆盖safety_chain算法、串口协议解析、EKF状态估计、雷达数据滤波等全部模块
-- 振荡测试7项（oscillation包）：验证TEB局部规划器在L形路径、U形回环、狭窄通道等场景的收敛性
-- 硬件集成测试：实测节点拓扑、TF树、雷达频率（/scan约10Hz）、costmap更新块（42×42 cells）、端到端响应（0.3m/s指令1秒位移0.312m）
+</details>
 
-总计106项测试构建了"算法+仿真+硬件"三层验证体系。Launch核心组件PASS、TF map→base_link链完整、lifecycle节点controller_server状态active[3]——这些指标量化证明了安全体系在真实硬件上的可用性。
+## 离线语音与视觉
 
-### 失效模式分析表
+小智陪伴链路在本地完成关键词唤醒、流式语音识别、意图解析与语音合成。语音输入可以发起导航或停止请求，也可以查询状态；它不会绕过底盘仲裁直接发布电机速度。界面的摄像头、点云和语音面板对应同一套 ROS 2 感知与交互链路。
 
-| 故障类型 | 检测手段 | 第一响应 | 最终状态 | 残留风险 |
-|----------|----------|----------|----------|----------|
-| 单雷达失效 | 雷达驱动心跳超时 | 融合节点剔除该路数据 | costmap仅剩两路 | 盲区扩大但仍能探测 |
-| 语音服务挂掉 | 前端界面无更新 | 无（语音本不持有控制权） | Nav2继续导航 | 无 |
-| 脑控服务崩溃 | `/eeg_mode_active`心跳超时 | 3秒后fallback至Nav2 | 恢复自主导航 | 无 |
-| 串口断开 | DJI A板看门狗超时 | 硬件复位电机 | 静默停车 | 无 |
-| Nav2 controller崩溃 | `/cmd_vel`超时0.5s | safety_chain强制zero | 停车 | 无 |
-| ROS2主进程死锁 | 串口心跳丢失 | 看门狗停车 | 静默停车 | 无 |
+| 任务 | 当前实现 | 推理位置 |
+| --- | --- | --- |
+| 唤醒与识别 | sherpa-onnx Zipformer，关键权重为 INT8 | CPU |
+| 语音合成 | Kokoro INT8，Piper 可作本地备选 | CPU |
+| 目标检测 | YOLO11s OpenVINO IR，优先使用 INT8 权重 | OpenVINO 按 NPU → GPU → CPU 尝试加载 |
 
-核心洞察：所有单点失效都有明确兜底路径，且最终状态都是"安全停车"。唯一残留风险是"双雷达同时失效导致盲区扩大"，但三路雷达同时失效概率极低，且此时仍有最后一道串口看门狗保护。
+设备回退链由 [YOLO 推理引擎](third_party/ladar_ai/src/ladar_ai/yolo_engine.py)实现；语音模型由 sherpa-onnx 的 CPU 后端运行。所有模型均在设备本地推理，网络仅用于首次获取模型文件。
 
+## 部署与验证
 
-上述安全体系支撑了所有实时运算——从50ms脑控控制环到20Hz安全链，从10Hz雷达融合到100Hz串口通信。这些计算密集任务全部运行在端侧，依赖本地算力而非云端。下一章将详细阐述端侧AI部署策略：四模型INT8量化、OpenVINO推理优化、NPU→GPU→CPU硬件回退链。
+### 环境与模型
 
----
+项目面向 Ubuntu 22.04、ROS 2 Humble 与 DK2500 的 16 GB 内存配置。真机还需要 ADS1299、头部 IMU、GNSS、车体 IMU、两台激光雷达、Gemini 深度相机、音频设备及底盘串口。ROS 2 主包位于 `src/`，TEB、雷达驱动和语音/视觉组件位于 `third_party/`。
 
-## 端侧AI部署
-
-安全体系的三道防线之上，实时运算能力由端侧AI部署支撑。在户外轮椅场景中，网络连接不可靠，云端AI无法依赖，所有智能必须本地化实现。本系统在Intel Core Ultra 5 DK2500上部署了四类深度学习模型，采用OpenVINO INT8量化与异构计算调度，实现全离线运行。
-
-### 设备回退链与异构调度
-
-![图15 设备回退链](docs/images/fig_device_chain.png)
-
-<p align="center">图15　设备回退链</p>
-
-
-图15展示了本系统的设备优先级回退策略。NPU(Intel AI Boost)作为首选设备，执行YOLO目标检测等高负载任务；GPU(Arc集成显卡)作为次选；CPU作为最后兜底。这种三层架构确保了在驱动缺失或设备过载时系统仍能持续运行。
-
-从工程实现角度，设备回退在 YOLO 引擎的工厂函数中完成：先检查请求的设备是否可用，不可用则按 NPU → GPU → CPU 顺序尝试加载。这一设计解决了两个实际问题：驱动版本不确定导致的NPU不可用，以及多任务并发时的设备负载均衡。
-
-值得注意的是，设备回退链的存在并非为了性能优化，而是为了鲁棒性。户外场景下，NPU驱动可能因温度保护而暂时失效，或GPU被其他任务占用，此时自动回退到CPU能保证AI功能不中断，虽帧率下降但系统持续响应。
-
-### 四类模型部署清单
-
-本系统部署的AI模型覆盖了轮椅的核心智能需求：视觉感知、语音交互、语音合成。下表列出了所有模型的详细信息。
-
-| 模型 | 任务 | 量化精度 | 推理框架 | 来源与规模 |
-|------|------|----------|----------|-----------|
-| sherpa-onnx-kws-zipformer-zh-en-3M | 关键词唤醒 | INT8 | sherpa-onnx | 3M参数，CPU常驻 |
-| manyeyes/k2transducer-zipformer-ctc-zh | 离线语音识别 | INT8 | sherpa-onnx | 流式zipformer架构 |
-| kokoro-int8-multi-lang | 文本转语音 | INT8 | sherpa-onnx | 多语言支持，高质量 |
-| YOLO11s | 目标检测 | INT8 | OpenVINO IR | COCO 80类，NPU加速 |
-
-### 视觉检测模型
-
-YOLO目标检测采用YOLO11s INT8量化版OpenVINO IR格式，在NPU上实测达到约76 FPS。模型支持COCO 80类目标检测，本系统实际使用行人、自行车、车辆、红绿灯等7类。
-
-模型加载遵循三级优先级：优先INT8量化版，其次FP16版，最后Ultralytics PyTorch版。这一策略平衡了精度与性能：INT8量化内存带宽减半，对行人等大目标精度损失可控。
-
-### 语音交互模型
-
-语音链路采用三级级联架构：KWS唤醒词检测、ASR离线识别、TTS语音合成。
-
-KWS模型使用zipformer-zh-en 3M INT8版本，CPU常驻运行，占用约3% CPU。ASR采用manyeyes流式zipformer模型，INT8量化，支持中英文混合识别。TTS默认使用kokoro多语言模型，可选回退到piper引擎。
-
-### 全离线架构的意义
-
-户外轮椅场景的特殊性决定了必须采用全离线AI部署。首先，商场、医院等场所的Wi-Fi信号不稳定，云端AI可能因网络中断而失效。其次，云端服务存在延迟不确定性，而轮椅的安全决策需要确定性响应时间。最后，语音交互涉及用户隐私，本地处理避免数据上传。
-
-在硬件层面，DK2500 搭载 Intel Core Ultra 5 225U（12 核 14 线程：2 性能核 + 8 能效核 + 2 低功耗能效核，最高睿频 4.8 GHz）与 2×8GB DDR5 双通道内存。片上 NPU 承担高负载视觉推理，iGPU（Intel Graphics，4 Xe 核）辅助计算，CPU 处理轻量级语音任务与控制逻辑——这一异构分工使全离线运行成为可能，16GB 内存足够所有模型常驻、消除加载延迟。
-
-### 模型获取与部署
-
-所有模型权重托管在Hugging Face仓库，读者可参照README"模型权重下载"章节获取。部署时需设置环境变量`MODELS_ROOT`指向模型目录，系统会自动定位各模型路径。
-
-部署完成后，建议运行单元测试验证各模型功能。视觉检测可通过目标检测节点实时测试，语音链路可通过麦克风喊"小智你好"触发 KWS，随后测试ASR识别和TTS播报。
-
-至此，本系统的六大核心设计已全部阐述：脑控链路、离线语音、导航子系统、安全体系、端侧AI部署，以及贯穿全系统的分层仲裁架构。下一章将由主笔接管，总结系统整体性能、开发路线图与后续改进方向。
-
----
-
-## 硬件清单
-
-| 部位 | 硬件 |
-|------|------|
-| 主控 | Intel Core Ultra 5 225U（DK2500 单板，2×8GB DDR5，NPU + 4 Xe 核 iGPU） |
-| 车辆 IMU | 维特 HWT906P（WitStandardProtocol 串口协议） |
-| 头部 IMU | ESP32-S3 + ICM20948V2（串口 CSV/JSON 自适应） |
-| 激光雷达 ×2 | 镭神 N10P（自研 Python 驱动，CW 方向反转）+ 乐动 LD14P（官方 Python 驱动） |
-| 深度相机 | Orbbec Gemini 330 系列（depthimage_to_laserscan 转第三路激光） |
-| GNSS | 移远 EC20F（4G dongle，AT + NMEA 双串口） |
-| EEG 采集 | ADS1299 八通道（前额八电极全用，导电膏佩戴）+ 自制脑控帽 |
-| 底盘执行 | DJI A 板（STM32，PID 闭环 + 看门狗）→ 有刷直流电机（见[电控层说明](#电控层说明)） |
-| 音频 | 通用麦克风输入 / 扬声器输出 |
-
-------|------|
-| 主控 | Intel Core Ultra 5 225U（DK2500 单板，2×8GB DDR5，NPU+4 Xe 核 iGPU） | 部署目标平台 |
-| 车辆 IMU | 维特 HWT906P（WitStandardProtocol 11 字节协议；驱动文件沿用 jy901 命名） |
-| 头部 IMU | ESP32-S3 + ICM20948V2（串口 CSV/JSON 自适应） |
-| 激光雷达 ×2 | 镭神 N10P（自研 Python 驱动，CW 方向反转）+ 乐动 LD14P（ldlidar 官方 Python 驱动） | `scripts/n10p_python_driver.py`、launch 中 ldlidar 段 |
-| 深度相机 | Orbbec Gemini 330 系列（depthimage_to_laserscan 转第三路激光） | launch `gemini_330_series` |
-| GNSS | 移远 EC20F（4G dongle，AT + NMEA 双串口） |
-| EEG 采集 | ADS1299 八通道（前额八电极全用，导电膏佩戴）+ 自制脑控帽 |
-| 底盘执行 | DJI A 板（STM32，PID 闭环 + 看门狗）→ 有刷直流电机 | 见[电控层说明](#电控层说明) |
-| 音频 | 通用麦克风输入 / 扬声器输出（sounddevice） |
-
----
-
-## 快速开始
-
-### 前置条件
-
-- Ubuntu 22.04 + ROS 2 Humble
-- Python 3.10（PyQt5、pyserial、numpy、sherpa-onnx、openvino 等，见各包依赖）
-- 按[模型权重下载](#模型权重下载)放置模型到 `models/`
-- 串口设备 udev 别名：`/dev/wheelchair_chassis`、`/dev/ttyIMU`、`/dev/lidar_n10p`、`/dev/LD14P`（参考系统 udev 规则）
-
-### 1. 构建工作空间
+大体积模型不随 Git 仓库分发。模型仓库的文件已经包含 `models/` 顶层目录，请在本仓库根目录下载，避免出现 `models/models/`：
 
 ```bash
-cd smart-wheelchair
-source /opt/ros/humble/setup.bash
-
-# 主工作空间（九个 ROS 2 包）
-colcon build --symlink-install
-
-# 第三方：TEB 本地规划器
-cd third_party/teb_ws_src && colcon build --build-base build --install-base ../teb_ws_install
-
-# 第三方：N10P 雷达驱动（若使用官方 lslidar；主 launch 默认走自研 Python 驱动）
-cd ../lidar_n10p_src && colcon build --build-base build --install-base ../lidar_n10p_install
-
-# 第三方：LD14P 雷达驱动（ldlidar）
-cd ../ldlidar_src/ldlidar && colcon build --build-base build --install-base ../../ldlidar_install
-
-# 第三方：ladar_ai 包（TTS 节点与语音引擎）
-cd ../ladar_ai && colcon build --build-base build --install-base ../ladar_ai_install
+python3 -m pip install -U huggingface_hub
+hf download lh527/smart-wheelchair --local-dir .
 ```
 
-### 2. 环境与启动
+当前视觉节点按 `models/yolo/yolo11s_openvino/yolo11s.xml` 查找模型，而模型仓库提供的 INT8 目录名为 `yolo11s_int8_openvino`。只下载该模型包时，可在本机为现有节点建立路径别名：
 
 ```bash
-source source_env.sh # WS_ROOT/MODELS_ROOT/ROS 环境一键加载
-./start/start_all.sh # 默认完整实物模式
-# USE_REAL_CHASSIS=0 ./start/start_all.sh # 仿真底盘模式
+ln -s yolo11s_int8_openvino models/yolo/yolo11s_openvino
 ```
 
-启动后约 25 秒，桌面出现 PyQt5 主窗口（自主导航 / 小智陪伴 / 脑电控制三个 Tab）与 RViz 窗口。
+[source_env.sh](source_env.sh) 负责设置 `WS_ROOT`、`MODELS_ROOT` 并加载 ROS 2 与已构建的包。开发环境的启动入口为 [start/start_all.sh](start/start_all.sh)，默认选择实物底盘和车体 IMU；仿真底盘需同时关闭两项实物开关：
 
 ```bash
-./start/stop_all.sh # 停止全部服务
+source source_env.sh
+USE_REAL_CHASSIS=0 USE_REAL_IMU=0 ./start/start_all.sh
+./start/stop_all.sh
 ```
 
----
+当前公开源码快照依赖设备专用端口、模型及第三方构建环境；部分 Python 启动文件的工作空间路径初始化仍需校正。上述命令说明项目入口，不代表已完成全新机器上的一键复现。
 
-## 模型权重下载
+### 验证记录
 
-四类模型体积较大，不随仓库分发，托管于 HuggingFace：
+2026-06-25 的[自动化测试归档](tests/results/2026-06-25-teb/auto_test_result.txt)记录 99 项 `rtk_perception` 单元测试和 7 项振荡测试通过，合计 106 项。另有[硬件联调记录](tests/results/2026-06-25-teb/hardware_integration_test.txt)，覆盖雷达话题、TF、costmap 更新与仿真底盘响应；归档中也列明了当时尚待完成的端到端路径跟踪检查。这里的 106 项属于自动化验证，不等同于 106 次载人或硬件测试。
 
-| 模型 | 任务 | 体积 | 放置路径 |
-|------|------|------|----------|
-| yolo11s INT8 OpenVINO IR | 目标检测 | ~10 MB |
-| sherpa-onnx KWS zipformer zh-en 3M | 唤醒词 | ~39 MB |
-| sherpa-onnx streaming zipformer zh INT8 | 流式 ASR | ~161 MB |
-| kokoro INT8 multi-lang v1.1 | TTS | ~519 MB |
-| EEG SVM（专注度二分类，另含咬牙检测 SVM） | 脑控 | ~0.2 MB | 已随仓库内置 `src/wheelchair_app/wheelchair_app/braincontrol/models/` |
+## 代码导航
 
-```bash
-pip install -U huggingface_hub
-huggingface-cli download lh527/smart-wheelchair --local-dir models/
-# 国内镜像：将 huggingface.co 替换为 hf-mirror.com
-```
+| 路径 | 内容 |
+| --- | --- |
+| [src/rtk_perception](src/rtk_perception) | 三路扫描、局部路径、安全链、底盘仲裁及主 launch |
+| [src/rtk_planner](src/rtk_planner) | OSM/NetworkX 全局规划 |
+| [src/wheelchair_app](src/wheelchair_app) | PyQt5 三 Tab、脑控运行时、语音节点 |
+| [src/rtk_gnss](src/rtk_gnss)、[src/rtk_imu](src/rtk_imu) | 定位与车体航向 |
+| [src/rtk_map](src/rtk_map)、[src/rtk_frontend](src/rtk_frontend) | 离线地图瓦片与前端服务 |
+| [third_party](third_party) | TEB、雷达驱动、ladar_ai、ai_model 组件 |
+| [data](data)、[docs/images](docs/images) | 离线路网与项目实物、界面、架构图 |
+| [tests/results](tests/results) | 自动化与联调记录 |
 
-托管仓库：https://huggingface.co/lh527/smart-wheelchair （国内镜像：huggingface.co 替换为 hf-mirror.com）
+## 电控层与项目边界
 
-```bash
-huggingface-cli download lh527/smart-wheelchair --local-dir models/ --include "models/*"
-# 下载完成后将 models/ 内容放置到仓库根的 models/ 目录
-```
+本仓库负责上位机侧的 ROS 2、导航、交互和串口命令。DJI A 板上的 STM32 电机闭环与看门狗固件见[电控层仓库](https://github.com/Bit-Walker/KUST-RoboMaster-DJI-A-Board/tree/V2)。本项目是竞赛原型，尚未作为载人安全认证产品交付。
 
-权重就位前，启动脚本会给出明确的缺失提示。
+相关技术项目：[Nav2](https://github.com/ros-navigation/navigation2) · [TEB Local Planner](https://github.com/rst-tu-dortmund/teb_local_planner) · [OpenVINO](https://github.com/openvinotoolkit/openvino) · [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)。
 
-EEG 专注度/咬牙 SVM 模型已随仓库内置（体积仅 0.2 MB），克隆即用；其训练评估产物（5 折交叉验证报告：准确率 95.97%、AUC 0.990、混淆矩阵、每折指标）托管于 HF 仓库 `models/eeg/training_report_624train.json`，脑控一章引用的全部指标均出自该文件。
-
----
-
-## 集成测试
-
-2026-06-25 完成的自动化验证（产物随仓库提供，见 `tests/results/2026-06-25-teb/`）：
-
-- 单元测试 99 项（rtk_perception 包）+ 振荡测试 7 项 = 106 项全部通过
-- 硬件集成测试：真实雷达连接下实测节点拓扑、TF 树、costmap 更新与端到端响应
-
-```bash
-colcon test --packages-select rtk_perception
-colcon test-result --verbose
-```
-
----
-
-## 电控层说明
-
-本仓库为上位机软件系统，不包含底盘电控层代码。底盘执行端基于 DJI A 板（STM32）实现 PID 闭环与看门狗，驱动有刷直流电机；电控层开源仓库见：
-
-https://github.com/Bit-Walker/KUST-RoboMaster-DJI-A-Board/tree/V2
-
-上位机与 A 板之间通过 UART 115200 8N1、100Hz ASCII 三字段帧（direction_angle / current_angle / forward_speed）通信。本项目不对机械设计、电控层做进一步介绍。
-
----
-
-## 目录结构
-
-```text
-smart-wheelchair/
-├── src/ # 九个 ROS 2 包
-│ ├── rtk_perception/ # 感知：三路激光、融合、safety_chain、主 launch
-│ ├── rtk_planner/ # 全局规划：OSM + NetworkX
-│ ├── rtk_gnss/ # EC20F GNSS 驱动
-│ ├── rtk_imu/ # HWT906P 车辆 IMU 驱动
-│ ├── rtk_map/ # mbtiles 地图服务
-│ ├── rtk_frontend/ # Web 静态资源服务
-│ ├── rtk_bringup/ # 启动编排
-│ ├── rtk_msgs/ # 自定义消息
-│ └── wheelchair_app/ # PyQt5 三 Tab 主程序 + 脑控运行时 + 语音节点
-├── third_party/ # TEB 规划器源码 / N10P 驱动源码 / ai-model 语音管线
-├── data/ # OSM 路网（region.graphml 5592 节点 12802 边）与地图瓦片
-├── scripts/ # 自研 N10P Python 驱动等工具
-├── start/ # 一键启动/停止
-├── tests/results/ # 106 项集成测试产物
-├── source_env.sh # 环境变量唯一定义点（WS_ROOT / MODELS_ROOT）
-└── docs/images/ # 架构图与运行截图
-```
-
----
-
-## 已知局限与后续工作
-
-当前系统的已知局限（也是后续迭代的方向）：
-
-- 里程计依赖 cmd_vel + 航向推算，底盘编码器反馈尚未回传上位机，长距离航迹存在累积漂移
-- 定位为 EC20F 单点 GPS + IMU 的 EKF 融合，米级噪声靠滞回与拐角锁定抑制，未引入视觉/激光重定位
-- 语音指令经前端进入导航链路，暂不支持经安全仲裁的语音直接调速
-- 单机构型，无远程监护端
-
----
-
-## License
-
-[MIT](LICENSE) © 2026
-
----
-
-> 免责声明：本系统为竞赛作品与科研平台，不构成医疗器械，实际载人应用需通过相应安全认证。
+许可协议：[MIT](LICENSE)。
