@@ -1,4 +1,16 @@
 """Gemini 335L RGB + 深度 → YOLO 检测 → 发布 DetectionArray。
+
+
+
+复用 ladar-ai/yolo_engine(OpenVINO NPU @ 76 FPS)和深度 ROI 距离估算。
+检测点发布为 base_link 坐标,距离为相对轮椅中心的前向距离。
+
+ladar-ai 接口(已探查):
+  - create_yolo_engine(model_path: str, conf: float, device: str)
+  - detect(model, frame) -> List[Dict]  字段:class_id/class_name/confidence/bbox
+  - 引擎层已按 TARGET_CLASSES 过滤(person/bicycle/car/motorcycle/bus/truck/traffic_light)
+"""
+
 import os as _os
 def _find_ws_root():
     r = _os.environ.get("WS_ROOT")
@@ -10,16 +22,6 @@ def _find_ws_root():
     return d
 _WS_ROOT = _find_ws_root()
 _MODELS_ROOT = _os.environ.get("MODELS_ROOT", _os.path.join(_WS_ROOT, "models"))
-
-
-复用 ladar-ai/yolo_engine(OpenVINO NPU @ 76 FPS)和深度 ROI 距离估算。
-检测点发布为 base_link 坐标,距离为相对轮椅中心的前向距离。
-
-ladar-ai 接口(已探查):
-  - create_yolo_engine(model_path: str, conf: float, device: str)
-  - detect(model, frame) -> List[Dict]  字段:class_id/class_name/confidence/bbox
-  - 引擎层已按 TARGET_CLASSES 过滤(person/bicycle/car/motorcycle/bus/truck/traffic_light)
-"""
 import sys
 import threading
 

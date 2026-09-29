@@ -1,4 +1,13 @@
 """语音引擎：唤醒词检测 + ASR 语音识别 + 指令解析。
+
+
+
+使用 ai-model 的模型路径：
+  KWS: sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20
+  ASR: sherpa-onnx-streaming-zipformer-zh-int8-2025-06-30
+  VAD: silero_vad.onnx
+"""
+
 import os as _os
 def _find_ws_root():
     r = _os.environ.get("WS_ROOT")
@@ -10,13 +19,6 @@ def _find_ws_root():
     return d
 _WS_ROOT = _find_ws_root()
 _MODELS_ROOT = _os.environ.get("MODELS_ROOT", _os.path.join(_WS_ROOT, "models"))
-
-
-使用 ai-model 的模型路径：
-  KWS: sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20
-  ASR: sherpa-onnx-streaming-zipformer-zh-int8-2025-06-30
-  VAD: silero_vad.onnx
-"""
 import os
 import time
 import logging

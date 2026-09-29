@@ -1,4 +1,10 @@
 """NetworkX planner 节点 launch（可独立启动用于调试）
+
+
+
+完全离线路径规划，不需要 OSRM Docker，也不需要联网。
+"""
+
 import os as _os
 def _find_ws_root():
     r = _os.environ.get("WS_ROOT")
@@ -10,10 +16,6 @@ def _find_ws_root():
     return d
 _WS_ROOT = _find_ws_root()
 _MODELS_ROOT = _os.environ.get("MODELS_ROOT", _os.path.join(_WS_ROOT, "models"))
-
-
-完全离线路径规划，不需要 OSRM Docker，也不需要联网。
-"""
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration

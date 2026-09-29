@@ -1,4 +1,13 @@
 """YOLO 推理引擎：OpenVINO NPU 加速目标检测。
+
+
+
+使用 YOLO11s OpenVINO IR 模型在 Intel NPU (AI Boost) 上推理（~76 FPS），
+自动回退到 GPU → CPU。
+
+设备优先级：NPU → GPU → CPU。
+"""
+
 import os as _os
 def _find_ws_root():
     r = _os.environ.get("WS_ROOT")
@@ -10,13 +19,6 @@ def _find_ws_root():
     return d
 _WS_ROOT = _find_ws_root()
 _MODELS_ROOT = _os.environ.get("MODELS_ROOT", _os.path.join(_WS_ROOT, "models"))
-
-
-使用 YOLO11s OpenVINO IR 模型在 Intel NPU (AI Boost) 上推理（~76 FPS），
-自动回退到 GPU → CPU。
-
-设备优先级：NPU → GPU → CPU。
-"""
 import os
 import logging
 import threading

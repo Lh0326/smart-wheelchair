@@ -1,4 +1,16 @@
 """voice_announce_node: 路径语音播报节点。
+
+
+
+订阅 /global_plan + /fix + /clear_goal，发布 /tts_request (ladar_ai.msg.TTSRequest)。
+- 路径概览：规划成功后播报"路径规划完毕，全程 X 米，..."
+- turn-by-turn：路名变化前 5m 播报"前方 5 米进入 X 路"
+- 到达终点：播报"已到达终点，导航结束"
+
+架构：本节点只负责"什么时候说什么话"，文本发到 /tts_request；
+现有 tts_node（ladar-ai 包）订阅 /tts_request 并调 TTSEngine 发声。
+"""
+
 import os as _os
 def _find_ws_root():
     r = _os.environ.get("WS_ROOT")
@@ -10,16 +22,6 @@ def _find_ws_root():
     return d
 _WS_ROOT = _find_ws_root()
 _MODELS_ROOT = _os.environ.get("MODELS_ROOT", _os.path.join(_WS_ROOT, "models"))
-
-
-订阅 /global_plan + /fix + /clear_goal，发布 /tts_request (ladar_ai.msg.TTSRequest)。
-- 路径概览：规划成功后播报"路径规划完毕，全程 X 米，..."
-- turn-by-turn：路名变化前 5m 播报"前方 5 米进入 X 路"
-- 到达终点：播报"已到达终点，导航结束"
-
-架构：本节点只负责"什么时候说什么话"，文本发到 /tts_request；
-现有 tts_node（ladar-ai 包）订阅 /tts_request 并调 TTSEngine 发声。
-"""
 import math
 import logging
 

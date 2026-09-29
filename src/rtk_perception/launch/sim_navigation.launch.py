@@ -1,15 +1,5 @@
 """仿真导航 launch（半实物仿真：真雷达 + 虚拟底盘）。
-import os as _os
-def _find_ws_root():
-    r = _os.environ.get("WS_ROOT")
-    if r: return r
-    d = _os.path.dirname(_os.path.abspath(__file__))
-    for _ in range(6):
-        if _os.path.exists(_os.path.join(d, "env.sh")): return d
-        d = _os.path.dirname(d)
-    return d
-_WS_ROOT = _find_ws_root()
-_MODELS_ROOT = _os.environ.get("MODELS_ROOT", _os.path.join(_WS_ROOT, "models"))
+
 
 
 启动方式：
@@ -24,6 +14,18 @@ _MODELS_ROOT = _os.environ.get("MODELS_ROOT", _os.path.join(_WS_ROOT, "models"))
   - 不启动 EC20 GNSS / imu_heading / orbbec / fusion_scan
   - 新增 sim_chassis_node 执行 cmd_vel_safe
 """
+
+import os as _os
+def _find_ws_root():
+    r = _os.environ.get("WS_ROOT")
+    if r: return r
+    d = _os.path.dirname(_os.path.abspath(__file__))
+    for _ in range(6):
+        if _os.path.exists(_os.path.join(d, "env.sh")): return d
+        d = _os.path.dirname(d)
+    return d
+_WS_ROOT = _find_ws_root()
+_MODELS_ROOT = _os.environ.get("MODELS_ROOT", _os.path.join(_WS_ROOT, "models"))
 import os
 
 from launch import LaunchDescription

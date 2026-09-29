@@ -1,4 +1,11 @@
 """TTS 句级切分：按中英文标点把长文本切成短段用于流式合成。
+
+
+
+句点 . 不切分小数点（数字之间的 . 保留），避免把"距离 2.5 米"
+误切成 ["距离 2", "5 米"]。
+"""
+
 import os as _os
 def _find_ws_root():
     r = _os.environ.get("WS_ROOT")
@@ -10,11 +17,6 @@ def _find_ws_root():
     return d
 _WS_ROOT = _find_ws_root()
 _MODELS_ROOT = _os.environ.get("MODELS_ROOT", _os.path.join(_WS_ROOT, "models"))
-
-
-句点 . 不切分小数点（数字之间的 . 保留），避免把"距离 2.5 米"
-误切成 ["距离 2", "5 米"]。
-"""
 import re
 
 # 切分用标点：中文句号/感叹号/问号/逗号/分号 + 英文对应 + 换行 + 句点

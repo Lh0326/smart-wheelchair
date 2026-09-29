@@ -1,4 +1,11 @@
 """networkx_planner_node 边吸附（edge snapping）单元测试
+
+
+
+验证路径起终点终止于实际点击点（投影到所在路段），不是路口节点。
+测试用例先取图中真实边的某点作为 goal，确保点击点本身在路上。
+"""
+
 import os as _os
 def _find_ws_root():
     r = _os.environ.get("WS_ROOT")
@@ -10,11 +17,6 @@ def _find_ws_root():
     return d
 _WS_ROOT = _find_ws_root()
 _MODELS_ROOT = _os.environ.get("MODELS_ROOT", _os.path.join(_WS_ROOT, "models"))
-
-
-验证路径起终点终止于实际点击点（投影到所在路段），不是路口节点。
-测试用例先取图中真实边的某点作为 goal，确保点击点本身在路上。
-"""
 import os
 
 import pytest

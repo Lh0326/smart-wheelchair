@@ -1,15 +1,5 @@
 """ROS2 voice_node: 严格参照 ai-model main_web.py 的 _voice_thread 重写。
-import os as _os
-def _find_ws_root():
-    r = _os.environ.get("WS_ROOT")
-    if r: return r
-    d = _os.path.dirname(_os.path.abspath(__file__))
-    for _ in range(6):
-        if _os.path.exists(_os.path.join(d, "env.sh")): return d
-        d = _os.path.dirname(d)
-    return d
-_WS_ROOT = _find_ws_root()
-_MODELS_ROOT = _os.environ.get("MODELS_ROOT", _os.path.join(_WS_ROOT, "models"))
+
 
 
 关键设计(照搬 main_web.py line 634-770):
@@ -25,6 +15,18 @@ _MODELS_ROOT = _os.environ.get("MODELS_ROOT", _os.path.join(_WS_ROOT, "models"))
   /voice_state   std_msgs/String  JSON: {state, remaining}
   /voice_command std_msgs/String  JSON: {action, text}
 """
+
+import os as _os
+def _find_ws_root():
+    r = _os.environ.get("WS_ROOT")
+    if r: return r
+    d = _os.path.dirname(_os.path.abspath(__file__))
+    for _ in range(6):
+        if _os.path.exists(_os.path.join(d, "env.sh")): return d
+        d = _os.path.dirname(d)
+    return d
+_WS_ROOT = _find_ws_root()
+_MODELS_ROOT = _os.environ.get("MODELS_ROOT", _os.path.join(_WS_ROOT, "models"))
 import json
 import sys
 import threading

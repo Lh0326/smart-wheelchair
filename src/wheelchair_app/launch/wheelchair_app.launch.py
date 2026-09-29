@@ -1,4 +1,16 @@
 """wheelchair_app 一键启动:PyQt5 main + rosbridge + static_server。
+
+
+
+用法:
+  ros2 launch wheelchair_app wheelchair_app.launch.py
+
+启动后:
+  - 主窗口加载 http://localhost:8000/{nav,companion}/index.html
+  - 状态栏显示时钟
+  - 3 个 tab 切换:自主导航 / 小智陪伴 / 脑电控制
+"""
+
 import os as _os
 def _find_ws_root():
     r = _os.environ.get("WS_ROOT")
@@ -10,16 +22,6 @@ def _find_ws_root():
     return d
 _WS_ROOT = _find_ws_root()
 _MODELS_ROOT = _os.environ.get("MODELS_ROOT", _os.path.join(_WS_ROOT, "models"))
-
-
-用法:
-  ros2 launch wheelchair_app wheelchair_app.launch.py
-
-启动后:
-  - 主窗口加载 http://localhost:8000/{nav,companion}/index.html
-  - 状态栏显示时钟
-  - 3 个 tab 切换:自主导航 / 小智陪伴 / 脑电控制
-"""
 import os
 
 from launch import LaunchDescription

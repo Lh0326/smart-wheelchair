@@ -1,4 +1,15 @@
 """TTS 引擎：基于 sherpa-onnx Kokoro 模型的文本转语音。
+
+
+
+完全复制 ai-model 的 TTSEngine，唯一改动是路径硬编码。
+
+音频后处理:
+  - 低通滤波: 消除 INT8 量化引入的高频噪声
+  - 高质量重采样: scipy spline 插值替代 sd.play 内置重采样
+  - 淡入淡出: 消除首尾爆音
+"""
+
 import os as _os
 def _find_ws_root():
     r = _os.environ.get("WS_ROOT")
@@ -10,15 +21,6 @@ def _find_ws_root():
     return d
 _WS_ROOT = _find_ws_root()
 _MODELS_ROOT = _os.environ.get("MODELS_ROOT", _os.path.join(_WS_ROOT, "models"))
-
-
-完全复制 ai-model 的 TTSEngine，唯一改动是路径硬编码。
-
-音频后处理:
-  - 低通滤波: 消除 INT8 量化引入的高频噪声
-  - 高质量重采样: scipy spline 插值替代 sd.play 内置重采样
-  - 淡入淡出: 消除首尾爆音
-"""
 import os
 import time
 import logging

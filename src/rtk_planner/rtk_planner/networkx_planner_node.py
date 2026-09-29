@@ -1,4 +1,16 @@
 """NetworkX 离线路径规划 ROS2 节点
+
+
+
+订阅 /fix（当前位置）和 /goal_gps（前端点击终点），
+用 osmnx + NetworkX 在本地 OSM 图上做最短路径规划，发布 /global_plan。
+
+完全离线、零外部依赖。不调任何 HTTP/网络服务。
+
+终点（和起点）吸附到最近**边**（路段），不是最近**节点**（路口）。
+点击位置投影到所在路段上，路径终止于实际点击点而非下个路口。
+"""
+
 import os as _os
 def _find_ws_root():
     r = _os.environ.get("WS_ROOT")
@@ -10,16 +22,6 @@ def _find_ws_root():
     return d
 _WS_ROOT = _find_ws_root()
 _MODELS_ROOT = _os.environ.get("MODELS_ROOT", _os.path.join(_WS_ROOT, "models"))
-
-
-订阅 /fix（当前位置）和 /goal_gps（前端点击终点），
-用 osmnx + NetworkX 在本地 OSM 图上做最短路径规划，发布 /global_plan。
-
-完全离线、零外部依赖。不调任何 HTTP/网络服务。
-
-终点（和起点）吸附到最近**边**（路段），不是最近**节点**（路口）。
-点击位置投影到所在路段上，路径终止于实际点击点而非下个路口。
-"""
 import math
 import os
 from typing import Optional, Tuple

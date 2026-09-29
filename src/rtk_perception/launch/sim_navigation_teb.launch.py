@@ -1,15 +1,5 @@
 """TEB 仿真导航 launch（替代 sim_navigation.launch.py 的 VFH+ 版本）。
-import os as _os
-def _find_ws_root():
-    r = _os.environ.get("WS_ROOT")
-    if r: return r
-    d = _os.path.dirname(_os.path.abspath(__file__))
-    for _ in range(6):
-        if _os.path.exists(_os.path.join(d, "env.sh")): return d
-        d = _os.path.dirname(d)
-    return d
-_WS_ROOT = _find_ws_root()
-_MODELS_ROOT = _os.environ.get("MODELS_ROOT", _os.path.join(_WS_ROOT, "models"))
+
 
 
 启动方式：
@@ -24,6 +14,18 @@ _MODELS_ROOT = _os.environ.get("MODELS_ROOT", _os.path.join(_WS_ROOT, "models"))
   - 新增 map→odom 静态 TF
   - path_to_baselink 的 /target_heading 输出在仿真下无下游消费者，仅保留接口兼容
 """
+
+import os as _os
+def _find_ws_root():
+    r = _os.environ.get("WS_ROOT")
+    if r: return r
+    d = _os.path.dirname(_os.path.abspath(__file__))
+    for _ in range(6):
+        if _os.path.exists(_os.path.join(d, "env.sh")): return d
+        d = _os.path.dirname(d)
+    return d
+_WS_ROOT = _find_ws_root()
+_MODELS_ROOT = _os.environ.get("MODELS_ROOT", _os.path.join(_WS_ROOT, "models"))
 import os
 
 from launch import LaunchDescription

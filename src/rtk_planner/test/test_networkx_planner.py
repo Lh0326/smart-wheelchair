@@ -1,4 +1,10 @@
 """networkx_planner_node 单元测试
+
+
+
+用真实 region.osm 数据做集成测试（不 mock，因为完全离线无副作用）。
+"""
+
 import os as _os
 def _find_ws_root():
     r = _os.environ.get("WS_ROOT")
@@ -10,10 +16,6 @@ def _find_ws_root():
     return d
 _WS_ROOT = _find_ws_root()
 _MODELS_ROOT = _os.environ.get("MODELS_ROOT", _os.path.join(_WS_ROOT, "models"))
-
-
-用真实 region.osm 数据做集成测试（不 mock，因为完全离线无副作用）。
-"""
 import os
 
 import pytest
